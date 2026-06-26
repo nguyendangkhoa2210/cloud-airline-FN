@@ -1,0 +1,274 @@
+/* ============================================================================
+   CLOUD AIRLINE — DESIGN SYSTEM (Light Edition)
+   Theme: Navy / Sky / Emerald — clean white cards, soft shadows.
+   This stylesheet re-themes the dark-mode Tailwind classes that index.html
+   and app.js (which renders some screens dynamically) still use, so the
+   markup itself didn't need a full rewrite. Every override below uses
+   !important on purpose: Tailwind's CDN-generated utility classes never use
+   !important, so ours always wins regardless of load order.
+   ========================================================================= */
+
+:root {
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 20px 45px rgba(15, 23, 42, 0.14);
+}
+
+/* ---------- Base body ---------- */
+body {
+  background: #f1f5f9 !important;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b !important;
+  overflow-x: hidden;
+}
+#app-wrapper {
+  background-color: #f1f5f9 !important;
+}
+
+/* ============================================================================
+   1. Small Tailwind gaps — these classes are referenced in the markup but
+   are not part of Tailwind's default scale, so without this they silently
+   did nothing (e.g. buttons with no font-size, no shadow, no hover bounce).
+   ========================================================================= */
+.text-2xs { font-size: 0.7rem; line-height: 1rem; }
+.shadow-3xl { box-shadow: var(--shadow-lg) !important; }
+.bloom-button { transition: transform .2s ease, box-shadow .2s ease; }
+.bloom-button:hover { transform: translateY(-1px); }
+.bloom-button:active { transform: translateY(0) scale(.98); }
+
+/* ============================================================================
+   2. Card surfaces
+   Note: use background-color (not the `background` shorthand) so a card can
+   still combine .glass-card with a custom bg-gradient-to-* utility class
+   without the shorthand wiping out the gradient image.
+   ========================================================================= */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: var(--shadow-sm);
+  color: #0f172a !important;
+}
+.glass-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: var(--shadow-sm);
+  color: #1e293b !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  box-shadow: var(--shadow-md);
+}
+
+/* Dark accent panel — for the few spots where we *deliberately* keep a dark
+   navy card (auth hero, lobby header). Add class="dark-panel" to the
+   container so its own headings / .text-white children stay white instead
+   of being caught by the global "force dark text" rules in section 6. */
+.dark-panel,
+.dark-panel h1, .dark-panel h2, .dark-panel h3, .dark-panel h4,
+.dark-panel .text-white {
+  color: #ffffff !important;
+}
+.dark-panel .accent {
+  color: #6ee7b7 !important;
+}
+
+/* ---------- Inputs ---------- */
+input, select, textarea {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #10b981 !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ============================================================================
+   3. 3D flip card (flight result cards) + ticket / barcode / scrollbar
+   ========================================================================= */
+.perspective-1000 { perspective: 1500px; }
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
+.ticket-container, .ticket-container * {
+  color: #0f172a !important;
+}
+.ticket-container {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(217, 119, 6, 0.2) !important;
+  box-shadow: var(--shadow-lg);
+}
+.ticket-container .border-dashed {
+  border-color: #cbd5e1 !important;
+}
+.barcode-line {
+  height: 48px;
+  background-color: #0f172a;
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.05); }
+::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.15); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.4); }
+
+.ambient-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(140px);
+  pointer-events: none;
+  z-index: -10;
+}
+
+.active-tab-highlight { position: relative; }
+.active-tab-highlight::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0; width: 100%; height: 2px;
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  border-radius: 99px;
+  animation: tabExtend 0.3s ease;
+}
+@keyframes tabExtend { from { width: 0; left: 50%; } to { width: 100%; left: 0; } }
+
+@keyframes slideIn {
+  from { transform: translateY(30px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.animate-slideup { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Extras (add-on) cards */
+.extras-interactive-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.extras-interactive-card h4, .extras-interactive-card p {
+  color: #1e293b !important;
+}
+.extras-interactive-card.selected-addon {
+  border-color: #059669 !important;
+  background-color: #ecfdf5 !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25) inset;
+}
+.extras-interactive-card.selected-addon button {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+/* ============================================================================
+   4. Seat map
+   Seat colors are applied directly as Tailwind utility classes inside
+   app.js (renderSeatsScreen / toggleSeatSelection), not via .seat-btn.* —
+   so there is nothing to re-theme here beyond the hover/active feel.
+   ========================================================================= */
+.seat-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.seat-btn:hover { transform: scale(1.08); }
+.seat-btn:active { transform: scale(0.95); }
+
+/* ============================================================================
+   5. Toast notifications — kept as a dark pill on purpose (reads clearly no
+   matter which light card is behind it, same idea as a Snackbar). Its text
+   must stay white even though section 6e forces .text-white to dark
+   everywhere else, so we give it the same escape hatch as .dark-panel.
+   ========================================================================= */
+.toast-notice {
+  animation: slideIn 0.3s ease;
+}
+.toast-notice, .toast-notice * {
+  color: #ffffff !important;
+}
+.toast-notice [class~="text-[#2af598]"] {
+  color: #6ee7b7 !important;
+}
+
+/* ============================================================================
+   6. Re-theme leftover dark-mode classes
+   The screens below were originally designed dark-on-dark. Rather than
+   rewrite hundreds of class lists by hand, we re-point the exact classes
+   that still assume a dark background (or that were typo'd into invalid
+   Tailwind tokens) to the light palette. [class~="..."] matches an exact,
+   whole class token — never a partial string — so it can't accidentally
+   catch an unrelated class.
+   ========================================================================= */
+
+/* --- 6a. Backgrounds: old dark panels -> white card --- */
+[class~="bg-[#0b1326]"],
+[class~="bg-[#0c1326]/90"], [class~="bg-[#0c1326]/95"],
+[class~="bg-[#0c162c]"], [class~="bg-[#0c162c]/95"],
+[class~="bg-[#0c1629]"], [class~="bg-[#0c1527]/90"],
+[class~="bg-[#060e20]"], [class~="bg-[#091124]"], [class~="bg-[#091124]/95"],
+[class~="bg-[#040914]/90"], [class~="bg-[#091b3e]/60"],
+[class~="bg-[#0e1930]/90"], [class~="bg-[#061022]/95"] {
+  background-color: #ffffff !important;
+}
+
+/* --- 6b. Borders: invisible white-on-dark borders -> visible slate --- */
+[class~="border-white/5"]  { border-color: rgba(15, 23, 42, 0.08) !important; }
+[class~="border-white/10"] { border-color: #e2e8f0 !important; }
+[class~="border-white/15"] { border-color: #cbd5e1 !important; }
+[class~="divide-white/5"]  { border-color: #e2e8f0 !important; }
+
+/* --- 6c. Translucent white fills (subtle dark-bg overlays) -> light neutral --- */
+[class~="bg-white/5"]  { background-color: rgba(15, 23, 42, 0.04) !important; }
+[class~="bg-white/10"] { background-color: rgba(15, 23, 42, 0.06) !important; }
+[class~="bg-white/20"] { background-color: #e2e8f0 !important; }
+[class~="text-white/40"] { color: #94a3b8 !important; }
+
+/* --- 6d. Secondary text: light-gray-on-dark "#bacbbc" family -> muted slate,
+   regardless of its opacity suffix --- */
+[class~="text-[#bacbbc]"],
+[class~="text-[#bacbbc]/30"], [class~="text-[#bacbbc]/50"],
+[class~="text-[#bacbbc]/60"], [class~="text-[#bacbbc]/70"], [class~="text-[#bacbbc]/75"] {
+  color: #64748b !important;
+}
+[class~="text-[#dae2fd]"] { color: #334155 !important; }
+
+/* Bright accent text: legible on white without losing the brand color */
+[class~="text-[#00f2fe]"] { color: #0284c7 !important; } /* -> sky-600 */
+[class~="text-[#2af598]"] { color: #059669 !important; } /* -> emerald-600 */
+[class~="hover:text-[#d0ffdc]"]:hover { color: #059669 !important; }
+
+/* --- 6e. Headings & .text-white default to dark text on the now-white
+   page. .dark-panel (defined in section 2 above) is the explicit escape
+   hatch wherever a navy card deliberately keeps white text. --- */
+h1, h2, h3, h4, .text-white { color: #0f172a !important; }
+
+/* Buttons / pills with a solid emerald or sky fill always read in white */
+[class~="bg-emerald-600"], [class~="bg-emerald-500"],
+[class~="bg-sky-600"], [class~="bg-sky-500"] {
+  color: #ffffff !important;
+}
+[class~="bg-emerald-600"] *, [class~="bg-emerald-500"] *,
+[class~="bg-sky-600"] *, [class~="bg-sky-500"] * {
+  color: #ffffff !important;
+}
+
+/* ============================================================================
+   7. Tables (lobby schedule, admin dashboard)
+   ========================================================================= */
+table { color: #0f172a !important; }
+thead tr { border-bottom: 2px solid #e2e8f0 !important; }
+thead th { color: #475569 !important; font-weight: 700 !important; }
+tbody tr { border-bottom: 1px solid #f1f5f9 !important; color: #334155 !important; }
+tbody tr:hover { background-color: #f8fafc !important; }
+
+/* ============================================================================
+   8. Circular countdown ring (passenger / seats / checkout screens)
+   The background track was authored as a faint white stroke meant to sit on
+   a dark card; now that those cards are white, give it a visible slate
+   track so the green progress ring still has something to stand out from.
+   ========================================================================= */
+circle[stroke="rgba(255,255,255,0.05)"] {
+  stroke: #e2e8f0 !important;
+}

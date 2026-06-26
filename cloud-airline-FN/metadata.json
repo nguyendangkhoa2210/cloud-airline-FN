@@ -1,0 +1,5 @@
+{
+  "name": "Cloud Airline",
+  "description": "Website đặt vé máy bay \"Cloud Airline\" — đồ án cuối kỳ môn Công Nghệ Phần Mềm. Frontend là HTML/CSS/JavaScript thuần (không cần build step), backend là PHP kết nối SQL Server qua PDO. Đầy đủ luồng: tìm chuyến bay, so sánh hạng vé Promo/Eco/SkyBoss, đặt vé một chiều/khứ hồi cho nhiều hành khách, chọn ghế, thanh toán, quản trị viên, và trợ lý ảo CloudBot.",
+  "requestFramePermissions": []
+}

@@ -383,8 +383,8 @@
                         <th class="py-2.5 px-2">Điểm Khởi Hành</th>
                         <th class="py-2.5 px-2">Điểm Đến</th>
                         <th class="py-2.5 px-2">Giờ Bay</th>
-                        <th class="py-2.5 px-2 text-emerald-400">Giá Eco</th>
-                        <th class="py-2.5 px-2 text-amber-400 text-right">Giá SkyBoss</th>
+                        <th class="py-2.5 px-2 text-emerald-400">Giá Phổ Thông</th>
+                        <th class="py-2.5 px-2 text-amber-400 text-right">Giá Thương Gia</th>
                       </tr>
                     </thead>
                     <tbody id="lobby-schedules-table-body" class="divide-y divide-white/5 text-[#dae2fd]">
@@ -640,7 +640,7 @@
                 </div>
                 <div class="flex justify-between">
                   <span class="text-[#bacbbc]">Hạng vé:</span>
-                  <strong id="passenger-summary-cabin" class="text-white">Business Class (SkyBoss)</strong>
+                  <strong id="passenger-summary-cabin" class="text-white">Business Class (Thương Gia)</strong>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-[#bacbbc]">Số lượng:</span>
@@ -666,7 +666,7 @@
           <!-- Big Cabin seat diagram selection grid -->
           <div class="lg:col-span-3 glass-card rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative bg-[#091124]/95">
             <h2 class="text-2xl font-display font-bold text-white tracking-tight">Sơ Đồ Chọn Ghế</h2>
-            <p class="text-xs text-[#bacbbc] mt-1 mb-3">Máy bay Boeing 777-300ER. Hàng 1-2 là khu SkyBoss/VIP (phụ thu $45), ghế Eco/Promo hàng 3-8 (phụ thu $15).</p>
+            <p class="text-xs text-[#bacbbc] mt-1 mb-3">Máy bay Boeing 777-300ER. Hàng 1-2 là khu Thương Gia (phụ thu $45), ghế tiết kiệm/ phổ thông hàng 3-8 (phụ thu $15).</p>
  
             <!-- Thông báo hạng vé — được JS điền vào động khi vào màn hình này -->
             <div id="seats-cabin-class-note" class="hidden mb-4"></div>
@@ -675,7 +675,7 @@
             <div class="flex flex-wrap items-center gap-4 text-[10px] font-mono font-bold mb-6 border-b border-slate-100 pb-4">
               <div class="flex items-center gap-2">
                 <div class="w-4 h-4 rounded bg-slate-100 border border-slate-300"></div>
-                <span>Còn trống (Eco/Promo)</span>
+                <span>Còn trống (tiết kiệm/ phổ thông)</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-4 h-4 rounded bg-[#2af598]/20 border border-[#2af598] shadow-[0_0_10px_#2af598]"></div>
@@ -683,7 +683,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-4 h-4 rounded bg-amber-500/10 border border-amber-500/30"></div>
-                <span>SkyBoss / VIP (Hàng 1-2)</span>
+                <span>Thương Gia / VIP (Hàng 1-2)</span>
               </div>
               <div class="flex items-center gap-2">
                 <div class="w-4 h-4 rounded bg-red-500/15 border border-red-500/30"></div>
@@ -715,7 +715,7 @@
             <div class="space-y-4 font-mono text-xs text-[#bacbbc]">
               <div class="flex justify-between items-center bg-white/5 px-4 py-3 rounded-xl border border-white/5">
                 <span>Hành khách:</span>
-                <strong id="seats-passenger-name-indicator" class="text-white text-right uppercase">NGUYEN DANG KHOA</strong>
+                <strong id="seats-passenger-name-indicator" class="text-white text-right uppercase">NGUYEN VAN A</strong>
               </div>
  
               <div class="flex justify-between items-center bg-white/5 px-4 py-3 rounded-xl border border-white/5">
@@ -1057,7 +1057,7 @@
                   </div>
                   <div>
                     <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Hạng vé</span>
-                    <strong id="success-class" class="text-white text-sm">Eco</strong>
+                    <strong id="success-class" class="text-white text-sm">Tiết Kiệm</strong>
                   </div>
                 </div>
                 <div>
@@ -1091,6 +1091,28 @@
           </button>
         </div>
 
+
+        <!-- ==================== 7B. SESSION EXPIRED / BOOKING TIMEOUT SCREEN ==================== -->
+        <!-- Hiện ra khi đồng hồ giữ chỗ 30 phút chạy về 0 trong lúc đang ở các bước đặt vé
+             (search -> select_flight -> passenger -> seats -> extras -> checkout).
+             Đóng vai trò tương đương "error.html" nhưng vẫn nằm trong SPA để giữ nguyên
+             CSS/JS context, tránh phải tách trang riêng phá vỡ kiến trúc 1-trang hiện tại. -->
+        <div id="screen-error" class="hidden w-full max-w-lg mx-auto flex flex-col items-center gap-6 justify-center text-center">
+          <div class="glass-card w-full rounded-3xl overflow-hidden border border-red-300 shadow-3xl p-8 flex flex-col items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+              <i data-lucide="alarm-clock-off" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <h2 class="text-xl font-display font-bold">Phiên giữ chỗ đã hết hạn</h2>
+            <p id="error-screen-message" class="text-sm text-slate-500 leading-relaxed">
+              Bạn đã không hoàn tất thanh toán trong vòng 30 phút giữ chỗ. Để đảm bảo công bằng cho hành khách khác,
+              giao dịch đặt vé này đã bị hủy tự động. Vui lòng thực hiện tìm chuyến bay và đặt vé lại từ đầu.
+            </p>
+            <button id="btn-error-back-to-search" class="w-full px-8 py-3.5 bg-gradient-to-r from-sky-500 to-emerald-500 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer hover:shadow-lg">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>QUAY VỀ TÌM CHUYẾN BAY</span>
+            </button>
+          </div>
+        </div>
 
         <!-- ==================== 8. ADMINISTRATIVE DASHBOARD SCREEN ==================== -->
         <div id="screen-admin" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-6 text-left">

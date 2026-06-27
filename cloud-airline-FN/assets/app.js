@@ -89,7 +89,7 @@ const MOCK_FLIGHTS = [
 const FARE_TIERS = [
   {
     key: 'Promo',
-    label: 'Phổ Thông Tiết Kiệm',
+    label: 'Tiết Kiệm',
     priceField: 'pricePromo',
     accent: 'slate',
     perks: [
@@ -101,7 +101,7 @@ const FARE_TIERS = [
   },
   {
     key: 'Eco',
-    label: 'Phổ Thông Eco',
+    label: 'Phổ Thông',
     priceField: 'priceEco',
     accent: 'emerald',
     perks: [
@@ -113,7 +113,7 @@ const FARE_TIERS = [
   },
   {
     key: 'SkyBoss',
-    label: 'SkyBoss Thương Gia',
+    label: 'Thương Gia',
     priceField: 'priceSkyBoss',
     accent: 'amber',
     perks: [
@@ -124,6 +124,32 @@ const FARE_TIERS = [
     ]
   }
 ];
+
+// ============================================================================
+// TÊN HIỂN THỊ HẠNG VÉ — dùng chung cho TOÀN BỘ ứng dụng (trang khách hàng:
+// đặt vé / chọn ghế / vé điện tử... và trang Admin) để tên hạng vé luôn đồng
+// bộ ở mọi nơi, không bị hiển thị mã thô (SkyBoss/Eco/Promo) ra giao diện.
+// Mã trong DB/CSDL giữ nguyên (SkyBoss/Eco/Promo) — chỉ đổi tên LÚC HIỂN THỊ.
+// ============================================================================
+const CABIN_CLASS_LABELS = {
+  SkyBoss: 'Thương Gia (Business)',
+  Eco: 'Phổ Thông (Economy)',
+  Promo: 'Tiết Kiệm (Saver)'
+};
+
+// Trả về tên hiển thị đầy đủ kèm tiếng Anh, ví dụ: "Phổ Thông (Economy)"
+// Nếu gặp mã lạ không có trong bảng trên, trả về chính mã đó để không bao giờ hiển thị rỗng/undefined.
+function getCabinLabel(cabinClass) {
+  return CABIN_CLASS_LABELS[cabinClass] || cabinClass || '';
+}
+window.getCabinLabel = getCabinLabel;
+
+// Bản rút gọn KHÔNG kèm tiếng Anh — dùng cho các chỗ không gian hẹp (badge, toast ngắn...)
+// ví dụ: "Phổ Thông" thay vì "Phổ Thông (Economy)"
+function getCabinLabelShort(cabinClass) {
+  return getCabinLabel(cabinClass).replace(/\s*\([^)]*\)\s*$/, '');
+}
+window.getCabinLabelShort = getCabinLabelShort;
 
 // ============================================================================
 // MEGA MENU — điều hướng tổng quan kiểu các hãng hàng không lớn
@@ -205,9 +231,9 @@ const MEGA_MENU = [
     key: 'experience', label: 'Trải Nghiệm Bay', icon: 'armchair',
     sections: [
       { title: '', links: [
-        { slug: 'cabin-skyboss', label: 'Hạng Thương Gia (SkyBoss)' },
-        { slug: 'cabin-eco-plus', label: 'Hạng Phổ Thông Đặc Biệt' },
-        { slug: 'cabin-eco', label: 'Hạng Phổ Thông (Eco)' },
+        { slug: 'cabin-skyboss', label: 'Hạng Thương Gia' },
+        { slug: 'cabin-eco-plus', label: 'Hạng Phổ Thông' },
+        { slug: 'cabin-eco', label: 'Hạng Tiết Kiệm ' },
         { slug: 'inflight-entertainment', label: 'Giải trí trên chuyến bay' },
         { slug: 'inflight-wifi', label: 'Kết nối Internet trên chuyến bay' }
       ]}
@@ -803,7 +829,7 @@ function renderLobbyScreen() {
               <div class="space-y-1.5 text-xs text-slate-700 text-left">
                 <div class="flex justify-between">
                   <span class="text-slate-500">✈️ Chuyến:</span>
-                  <strong class="text-slate-900 font-mono font-bold">${b.flightNumber} (${b.cabinClass || 'Eco'})</strong>
+                  <strong class="text-slate-900 font-mono font-bold">${b.flightNumber} (${getCabinLabelShort(b.cabinClass || 'Eco')})</strong>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-slate-500">👤 Hành khách:</span>
@@ -970,7 +996,7 @@ function renderPassengerScreen() {
   }
   const cabinEl = document.getElementById('passenger-summary-cabin');
   if (cabinEl) {
-    cabinEl.textContent = currentBooking.cabinClass;
+    cabinEl.textContent = getCabinLabel(currentBooking.cabinClass);
   }
   const qtyEl = document.getElementById('passenger-summary-qty');
   if (qtyEl) {
@@ -1916,7 +1942,7 @@ function renderFlightSelection() {
   const legBadge = document.getElementById('flight-select-leg-badge');
   if (legBadge) {
     if (isReturnLeg) {
-      legBadge.textContent = `BƯỚC 2/2 — CHỌN CHUYẾN VỀ (Hạng ${currentBooking.cabinClass})`;
+      legBadge.textContent = `BƯỚC 2/2 — CHỌN CHUYẾN VỀ (Hạng ${getCabinLabelShort(currentBooking.cabinClass)})`;
     } else if (currentBooking.tripType === 'RoundTrip') {
       legBadge.textContent = 'BƯỚC 1/2 — CHỌN CHUYẾN ĐI & HẠNG VÉ';
     } else {
@@ -2082,7 +2108,7 @@ function buildReturnFlightCardHtml(flight) {
       ${buildFlightCardHeaderHtml(flight)}
       <div class="flex items-center justify-between gap-4 pt-2">
         <div>
-          <span class="text-[10px] font-mono text-slate-400 uppercase block">Giá hạng ${currentBooking.cabinClass} (chuyến về) / khách</span>
+          <span class="text-[10px] font-mono text-slate-400 uppercase block">Giá hạng ${getCabinLabelShort(currentBooking.cabinClass)} (chuyến về) / khách</span>
           <strong class="text-2xl font-black text-slate-900">$${price.toLocaleString()}</strong>
         </div>
         <button onclick="selectReturnFlight(${flight.id})" class="px-6 py-3 bg-gradient-to-r from-sky-500 to-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.35)] text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" ${isCancelled ? 'disabled' : ''}>
@@ -2108,11 +2134,11 @@ function selectBookingFlight(id, cabinClass) {
   currentBooking.cabinClass = cabinClass || 'Eco';
 
   if (currentBooking.tripType === 'RoundTrip') {
-    triggerToast(`🎫 Đã chọn chuyến đi ${selected.flightNumber} — Hạng ${currentBooking.cabinClass}. Giờ chọn chuyến về!`);
+    triggerToast(`🎫 Đã chọn chuyến đi ${selected.flightNumber} — Hạng ${getCabinLabelShort(currentBooking.cabinClass)}. Giờ chọn chuyến về!`);
     currentBooking.selectingReturnLeg = true;
     navigateTo('select_flight'); // tái sử dụng lại màn này, đổi sang chế độ chọn CHUYẾN VỀ
   } else {
-    triggerToast(`🎫 Đã chọn ${selected.flightNumber} — Hạng ${currentBooking.cabinClass}`);
+    triggerToast(`🎫 Đã chọn ${selected.flightNumber} — Hạng ${getCabinLabelShort(currentBooking.cabinClass)}`);
     navigateTo('passenger');
   }
 }
@@ -2184,9 +2210,9 @@ async function renderSeatsScreen() {
   const cabinNote = document.getElementById('seats-cabin-class-note');
   if (cabinNote) {
     if (isSkyBoss) {
-      cabinNote.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold">👑 Hạng SkyBoss — Chỉ được chọn ghế hàng 1–2 (Thương Gia)</span>`;
+      cabinNote.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-[10px] font-bold">👑 Hạng ${getCabinLabelShort(cabinClass)} — Chỉ được chọn ghế hàng 1–2 (Thương Gia)</span>`;
     } else {
-      cabinNote.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-300 font-mono text-[10px] font-bold">🪑 Hạng ${cabinClass} — Chỉ được chọn ghế hàng 3–8 (Phổ Thông)</span>`;
+      cabinNote.innerHTML = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/40 text-sky-300 font-mono text-[10px] font-bold">🪑 Hạng ${getCabinLabelShort(cabinClass)} — Chỉ được chọn ghế hàng 3–8 (Phổ Thông)</span>`;
     }
     cabinNote.classList.remove('hidden');
   }
@@ -2290,7 +2316,7 @@ function toggleSeatSelection(seatId) {
     return;
   }
   if (!isSkyBoss && isVipRow) {
-    triggerToast(`🔒 Hạng ${cabinClass} Phổ Thông chỉ được chọn ghế hàng 3–8!`);
+    triggerToast(`🔒 Hạng ${getCabinLabelShort(cabinClass)} Phổ Thông chỉ được chọn ghế hàng 3–8!`);
     return;
   }
 
@@ -2372,7 +2398,7 @@ function renderCheckoutScreen() {
   const totalBill = calculateTotalBill();
 
   // Draw prices fields in HTML
-  document.getElementById('receipt-flight-info').textContent = `${getFlightNumbersLabel()} (${currentBooking.cabinClass})`;
+  document.getElementById('receipt-flight-info').textContent = `${getFlightNumbersLabel()} (${getCabinLabel(currentBooking.cabinClass)})`;
   document.getElementById('receipt-route').textContent = getRouteLabel();
   document.getElementById('receipt-date').textContent = currentBooking.departureDate;
   
@@ -2435,7 +2461,7 @@ function renderSuccessTicket(bookingRef) {
       : currentBooking.departureDate + ' ' + currentBooking.selectedFlight.departureTime;
   }
   if (fliSeat) fliSeat.textContent = bookingRef.seat;
-  if (fliCab) fliCab.textContent = currentBooking.cabinClass;
+  if (fliCab) fliCab.textContent = getCabinLabel(currentBooking.cabinClass);
   if (fliTotal) fliTotal.textContent = `$${bookingRef.totalPrice.toLocaleString()}`;
 }
 
@@ -2518,7 +2544,7 @@ function renderAdminDashboard() {
           <td class="px-5 py-4 font-bold text-slate-900">${b.passengerName}</td>
           <td class="px-5 py-4 font-mono font-bold text-sky-700">${b.flightNumber}</td>
           <td class="px-5 py-4">
-            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-mono font-extrabold">${b.cabinClass}</span> • 
+            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-mono font-extrabold">${getCabinLabel(b.cabinClass)}</span> • 
             <strong class="text-slate-950 font-mono font-black">${b.seat || 'K3'}</strong>
           </td>
           <td class="px-5 py-4 font-mono font-bold text-emerald-600 text-sm">$${b.totalPrice}</td>

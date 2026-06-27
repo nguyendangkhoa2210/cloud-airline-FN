@@ -9,6 +9,10 @@
  * }
  * Ghi 1 booking + N hành khách + N tiện ích trong 1 TRANSACTION — nếu bất kỳ bước nào lỗi,
  * toàn bộ được rollback để không bao giờ phát sinh vé "nửa vời" trong CSDL.
+ *
+ * LƯU Ý PHIÊN BẢN MYSQL:
+ * SQL Server dùng "OUTPUT INSERTED.id" để lấy id vừa insert ngay trong câu INSERT.
+ * MySQL KHÔNG có cú pháp này — phải INSERT xong rồi gọi $pdo->lastInsertId() riêng.
  */
 
 require_once __DIR__ . '/../config.php';
@@ -38,14 +42,14 @@ try {
     $pdo->beginTransaction();
 
     // 1. Insert Booking
+    // Bản MySQL: bỏ "OUTPUT INSERTED.id", lấy id bằng lastInsertId() sau khi execute()
     $stmt = $pdo->prepare('
         INSERT INTO bookings
             (booking_code, user_id, trip_type, outbound_flight_id, return_flight_id, departure_date, return_date, cabin_class, total_price, status)
-        OUTPUT INSERTED.id
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, \'Confirmed\')
     ');
     $stmt->execute([$bookingCode, $userId, $tripType, $outboundFlightId, $returnFlightId, $departureDate, $returnDate, $cabinClass, $totalPrice]);
-    $bookingId = (int)$stmt->fetchColumn();
+    $bookingId = (int)$pdo->lastInsertId();
 
     // 2. Insert Hành Khách
     $stmtPassenger = $pdo->prepare('
@@ -55,15 +59,15 @@ try {
     foreach ($passengers as $p) {
         // Xử lý triệt để kiểu dữ liệu INT hoặc NULL cho age
         $age = (isset($p['age']) && $p['age'] !== '') ? (int)$p['age'] : null;
-        
+
         // Đảm bảo seat_number không bị rỗng theo ràng buộc NOT NULL của DB
-        $seatNumber = !empty($p['seatNumber']) ? $p['seatNumber'] : 'NoSeat'; 
+        $seatNumber = !empty($p['seatNumber']) ? $p['seatNumber'] : 'NoSeat';
 
         $stmtPassenger->execute([
             $bookingId,
             $p['fullName'] ?? '',
             $p['passportId'] ?? '',
-            $p['nationality'] ?? N'Việt Nam', // Đồng bộ NVARCHAR
+            !empty($p['nationality']) ? $p['nationality'] : 'Việt Nam',
             $age,
             !empty($p['email']) ? $p['email'] : null, // Nếu trống thì lưu NULL thay vì chuỗi rỗng
             $seatNumber
@@ -82,6 +86,6 @@ try {
     json_response(['success' => true, 'bookingCode' => $bookingCode, 'bookingId' => $bookingId]);
 } catch (Exception $e) {
     $pdo->rollBack();
-    // In chi tiết lỗi của SQL Server ra để dễ debug
+    // In chi tiết lỗi của MySQL ra để dễ debug
     json_response(['success' => false, 'message' => 'Không thể lưu vé: ' . $e->getMessage()], 500);
 }

@@ -602,6 +602,17 @@ let currentBooking = createFreshBooking();
 let sessionTimeLeft = 600; // 10 minutes in seconds
 let timerId = null;
 
+// ============================================================================
+// ĐỒNG BỘ ĐỒNG HỒ GIỮ CHỖ 30 PHÚT QUA localStorage
+// Lý do dùng "deadline" (mốc thời gian tuyệt đối Date.now() + 30 phút) thay vì
+// chỉ lưu "số giây còn lại": nếu lưu số giây, mỗi lần F5 lại reset gần như y
+// nguyên giá trị cũ (vì code chỉ đọc 1 lần lúc load) và các tab khác sẽ không
+// biết giờ đã trôi tới đâu. Lưu deadline thì bất kỳ tab/màn hình nào (Passenger
+// -> Seats -> Checkout) cũng tự tính lại "còn bao nhiêu giây" bằng cách lấy
+// deadline - thời điểm hiện tại, nên luôn khớp nhau tuyệt đối.
+// ============================================================================
+const BOOKING_DEADLINE_KEY = 'cloudAirline_bookingDeadline';
+
 // Audio context chime fallback
 function playChime(type) {
   try {
@@ -662,7 +673,7 @@ function navigateTo(screenId) {
   const screens = [
     'screen-auth', 'screen-lobby', 'screen-search', 'screen-select-flight', 
     'screen-passenger', 'screen-seats', 'screen-extras', 
-    'screen-checkout', 'screen-success', 'screen-admin', 'screen-php'
+    'screen-checkout', 'screen-success', 'screen-error', 'screen-admin', 'screen-php'
   ];
   
   screens.forEach(s => {
@@ -1164,7 +1175,7 @@ function updateExtrasFloatingRibbon() {
 // Initialize layout elements
 function initializeApp() {
   lucide.createIcons();
-  startCountdown();
+  startCountdown(true); // resume=true: nếu vừa F5 lại trang giữa lúc đặt vé, khôi phục đúng deadline cũ từ localStorage
   setupActionListeners();
   renderMegaNavBar();
   loadFlightsFromServer(); // chạy nền — không cần chờ vẫn cho hiện màn đăng nhập ngay
@@ -1174,26 +1185,49 @@ function initializeApp() {
 }
 
 // Timer management
-function startCountdown() {
+// Tham số `resume`: true = đọc deadline cũ từ localStorage nếu còn hợp lệ (dùng khi mới load trang/F5);
+//                   false (mặc định) = LUÔN tạo deadline mới +30 phút (dùng khi đăng nhập / bắt đầu đặt vé mới).
+function startCountdown(resume = false) {
   if (timerId) clearInterval(timerId);
-  sessionTimeLeft = 1800; // 30 minutes countdown
-  
+
+  const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+  let deadline = null;
+
+  if (resume) {
+    // Thử khôi phục deadline đã lưu trước đó (ví dụ người dùng vừa F5 lại trang
+    // giữa bước Chọn Ghế). Nếu deadline cũ đã trôi qua hoặc không hợp lệ, coi như
+    // không có gì để khôi phục — KHÔNG tự cấp thêm 30 phút mới ở đây.
+    const saved = Number(localStorage.getItem(BOOKING_DEADLINE_KEY));
+    if (saved && saved > Date.now()) {
+      deadline = saved;
+    }
+  }
+
+  if (!deadline) {
+    deadline = Date.now() + THIRTY_MINUTES_MS;
+    localStorage.setItem(BOOKING_DEADLINE_KEY, String(deadline));
+  }
+
   const timerBadgeValue = document.getElementById('timer-badge-value');
   const timerBadge = document.getElementById('timer-badge');
-  
+
+  // Hàm tính lại số giây còn lại NGAY TỪ deadline mỗi lần tick — đây chính là điểm
+  // đảm bảo đồng bộ: dù mở lại tab khác hay F5, deadline trong localStorage không đổi
+  // nên mọi nơi tính ra cùng 1 kết quả "còn lại bao nhiêu giây".
   timerId = setInterval(() => {
     if (!isLoggedIn || !BOOKING_FLOW_SCREENS.includes(activeScreen)) {
       if (timerBadge) timerBadge.classList.add('hidden');
       return;
     }
-    
+
     if (timerBadge) timerBadge.classList.remove('hidden');
-    sessionTimeLeft--;
+
+    sessionTimeLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
 
     if (sessionTimeLeft <= 0) {
       clearInterval(timerId);
-      triggerToast('🚨 Phiên làm việc của bạn đã hết hạn bảo mật! Vui lòng đăng nhập lại.');
-      logoutUser();
+      localStorage.removeItem(BOOKING_DEADLINE_KEY);
+      handleBookingSessionExpired();
       return;
     }
 
@@ -1230,6 +1264,23 @@ function startCountdown() {
     }
   }, 1000);
 }
+
+// Khi hết 30 phút giữ chỗ giữa lúc đang trong luồng đặt vé (search -> ... -> checkout):
+// hủy giao dịch đang đặt dở, đăng xuất an toàn, rồi điều hướng tới screen-error (tương
+// đương "error.html") để thông báo rõ ràng lý do, thay vì chỉ hiện toast rồi về màn login.
+function handleBookingSessionExpired() {
+  currentBooking = createFreshBooking(); // Hủy sạch dữ liệu giữ ghế/hành khách đang đặt dở
+
+  // Đăng xuất "âm thầm" phía server, KHÔNG gọi logoutUser() trực tiếp vì hàm đó
+  // tự navigateTo('auth') — ở đây ta muốn tự kiểm soát điều hướng tới screen-error.
+  fetch(`${API_BASE}/logout.php`, { method: 'POST' }).catch(() => {});
+  isLoggedIn = false;
+  userFullName = '';
+  userRole = 'user';
+
+  navigateTo('error');
+}
+window.handleBookingSessionExpired = handleBookingSessionExpired;
 
 // Setup Event and UI triggers
 function setupActionListeners() {
@@ -1617,6 +1668,12 @@ function setupActionListeners() {
         };
         bookingsDb.push(newBookingRef);
 
+        // Đặt vé xong: cấp lại đồng hồ giữ chỗ MỚI (30 phút tính từ giờ) cho lượt
+        // đặt vé tiếp theo của cùng phiên đăng nhập này — tránh trường hợp người
+        // dùng vừa đặt vé xong, bấm "Đặt chuyến mới" thì đồng hồ đã gần hết hạn
+        // (vì vẫn là deadline cũ còn sót lại từ lượt đặt vé trước).
+        startCountdown();
+
         // Display Success Screen Ticket
         renderSuccessTicket(newBookingRef);
         playChime('success');
@@ -1649,6 +1706,17 @@ function setupActionListeners() {
       if (ins) ins.checked = false;
 
       navigateTo('search');
+    });
+  }
+
+  // Nút "Quay về tìm chuyến bay" trên screen-error (hết giờ giữ chỗ).
+  // Lúc này handleBookingSessionExpired() đã đăng xuất user rồi, nên đưa về
+  // màn đăng nhập (auth) là đúng — không thể vào thẳng 'search' vì màn đó
+  // yêu cầu đã đăng nhập (xem require_login() phía các API liên quan).
+  const btnErrorBackToSearch = document.getElementById('btn-error-back-to-search');
+  if (btnErrorBackToSearch) {
+    btnErrorBackToSearch.addEventListener('click', () => {
+      navigateTo('auth');
     });
   }
 
@@ -1746,6 +1814,7 @@ function logoutUser() {
   bookingsDb = [];                       // QUAN TRỌNG: xoá sạch dữ liệu vé của tài khoản vừa đăng xuất
   currentBooking = createFreshBooking(); // Không để sót thông tin hành khách/chuyến bay đang đặt dở
   if (timerId) clearInterval(timerId);
+  localStorage.removeItem(BOOKING_DEADLINE_KEY); // Đăng xuất chủ động -> dọn luôn deadline giữ chỗ
   triggerToast('🔒 Bạn đã đăng xuất hệ thống an toàn!');
   navigateTo('auth');
 }

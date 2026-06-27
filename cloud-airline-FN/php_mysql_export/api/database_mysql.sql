@@ -1,38 +1,28 @@
--- ============================================================================
--- CLOUD AIRLINE — Cơ sở dữ liệu SQL Server (Đồ án Công Nghệ Phần Mềm)
--- ============================================================================
-
--- 1. TẠO DATABASE
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'cloud_airline_db')
-BEGIN
-    CREATE DATABASE cloud_airline_db;
-END
-GO
+CREATE DATABASE IF NOT EXISTS cloud_airline_db
+    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE cloud_airline_db;
-GO
 
--- XÓA BẢNG NẾU ĐÃ TỒN TẠI (Theo thứ tự khóa ngoại từ con đến cha)
-IF OBJECT_ID('booking_addons', 'U') IS NOT NULL DROP TABLE booking_addons;
-IF OBJECT_ID('booking_passengers', 'U') IS NOT NULL DROP TABLE booking_passengers;
-IF OBJECT_ID('bookings', 'U') IS NOT NULL DROP TABLE bookings;
-IF OBJECT_ID('flights', 'U') IS NOT NULL DROP TABLE flights;
-IF OBJECT_ID('users', 'U') IS NOT NULL DROP TABLE users;
-GO
+-- Xóa bảng nếu đã tồn tại (theo thứ tự khóa ngoại từ con đến cha)
+DROP TABLE IF EXISTS booking_addons;
+DROP TABLE IF EXISTS booking_passengers;
+DROP TABLE IF EXISTS bookings;
+DROP TABLE IF EXISTS flights;
+DROP TABLE IF EXISTS users;
 
 -- 1. USERS
 CREATE TABLE users (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(191) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL, -- Đảm bảo chuẩn VARCHAR
-    full_name NVARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
     role VARCHAR(10) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    created_at DATETIME DEFAULT GETDATE()
-);
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 2. FLIGHTS
 CREATE TABLE flights (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     flight_number VARCHAR(20) NOT NULL UNIQUE,
     origin VARCHAR(50) NOT NULL,
     destination VARCHAR(50) NOT NULL,
@@ -46,11 +36,11 @@ CREATE TABLE flights (
     aircraft VARCHAR(100) NOT NULL,
     baggage VARCHAR(100) NOT NULL,
     emissions VARCHAR(100) NOT NULL
-);
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 3. BOOKINGS
 CREATE TABLE bookings (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     booking_code VARCHAR(20) NOT NULL UNIQUE,
     user_id INT NULL,
     trip_type VARCHAR(20) NOT NULL DEFAULT 'OneWay' CHECK (trip_type IN ('OneWay', 'RoundTrip')),
@@ -61,42 +51,41 @@ CREATE TABLE bookings (
     cabin_class VARCHAR(20) NOT NULL CHECK (cabin_class IN ('Promo', 'Eco', 'SkyBoss')),
     total_price DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'Confirmed' CHECK (status IN ('Confirmed', 'Cancelled')),
-    created_at DATETIME DEFAULT GETDATE(),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (outbound_flight_id) REFERENCES flights(id),
     FOREIGN KEY (return_flight_id) REFERENCES flights(id)
-);
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 4. BOOKING_PASSENGERS
 CREATE TABLE booking_passengers (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
-    full_name NVARCHAR(100) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
     passport_number VARCHAR(30) NOT NULL,
-    nationality NVARCHAR(50) DEFAULT N'Việt Nam',
+    nationality VARCHAR(50) DEFAULT 'Việt Nam',
     age INT NULL,
     email VARCHAR(100) NULL,
     seat_number VARCHAR(10) NOT NULL,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
-);
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 5. BOOKING_ADDONS
 CREATE TABLE booking_addons (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NOT NULL,
-    name NVARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
-);
-GO
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- ============================================================================
--- SEED DATA 
+-- SEED DATA
 -- ============================================================================
 
 INSERT INTO users (email, password, full_name, role) VALUES
-('admin@cloudairline.com', '$2b$10$Ao7xpJ0e04LP7nRPlzL9su1.jmdiJX7StcnkD1r1Tq6g3iywzlGyC', N'Quản Trị Viên Hệ Thống', 'admin'),
-('test@user.com', '$2b$10$n8z4XWotU84SVBiHo1pNz.Y7XOPhrhce78rc4Vd.hQBO68LDnbw52', N'Nguyễn Đăng Khoa', 'user');
+('admin@cloudairline.com', '$2b$10$Ao7xpJ0e04LP7nRPlzL9su1.jmdiJX7StcnkD1r1Tq6g3iywzlGyC', 'Quản Trị Viên Hệ Thống', 'admin'),
+('test@user.com', '$2b$10$n8z4XWotU84SVBiHo1pNz.Y7XOPhrhce78rc4Vd.hQBO68LDnbw52', 'Nguyễn Đăng Khoa', 'user');
 
 INSERT INTO flights (flight_number, origin, destination, departure_time, arrival_time, duration, price_skyboss, price_eco, price_promo, status, aircraft, baggage, emissions) VALUES
 ('CA203', 'New York (JFK)', 'Da Nang (DAD)', '10:00 AM', '9:00 PM (+1)', '18h 00m', 5400.00, 1850.00, 1200.00, 'Scheduled', 'Airbus A350-900 XWB', '30kg free checked + 7kg carry-on', '-15% CO2 reduction certified'),
@@ -109,10 +98,9 @@ INSERT INTO bookings (booking_code, user_id, trip_type, outbound_flight_id, retu
 ('CH-849204', 2, 'OneWay', 2, NULL, '2026-09-15', NULL, 'SkyBoss', 5045.00, 'Confirmed');
 
 INSERT INTO booking_passengers (booking_id, full_name, passport_number, nationality, age, email, seat_number) VALUES
-(1, N'NGUYEN DANG KHOA', 'B12345678', N'Việt Nam', 21, 'nguyendangkhoa28lhk@gmail.com', 'A1'),
-(1, N'TRAN THI B', 'B87654321', N'Việt Nam', 24, 'tranthib@gmail.com', 'A2');
+(1, 'NGUYEN DANG KHOA', 'B12345678', 'Việt Nam', 21, 'nguyendangkhoa28lhk@gmail.com', 'A1'),
+(1, 'TRAN THI B', 'B87654321', 'Việt Nam', 24, 'tranthib@gmail.com', 'A2');
 
 INSERT INTO booking_addons (booking_id, name, price) VALUES
 (1, 'Extra Cabin Luggage', 35.00),
 (1, 'Elite Travel Safeguard', 25.00);
-GO

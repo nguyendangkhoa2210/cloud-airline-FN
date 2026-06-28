@@ -16,7 +16,10 @@ const MOCK_FLIGHTS = [
     status: 'Scheduled',
     aircraft: 'Airbus A350-900 XWB',
     baggage: '30kg free checked + 7kg carry-on',
-    emissions: '-15% CO2 reduction certified'
+    emissions: '-15% CO2 reduction certified',
+    seatsLeftSkyBoss: 8,
+    seatsLeftEco: 24,
+    seatsLeftPromo: 24
   },
   {
     id: 2,
@@ -32,7 +35,10 @@ const MOCK_FLIGHTS = [
     status: 'Scheduled',
     aircraft: 'Boeing 787-9 Dreamliner',
     baggage: '25kg free checked + 7kg carry-on',
-    emissions: '-20% CO2 reduction certified'
+    emissions: '-20% CO2 reduction certified',
+    seatsLeftSkyBoss: 8,
+    seatsLeftEco: 24,
+    seatsLeftPromo: 24
   },
   {
     id: 3,
@@ -48,7 +54,10 @@ const MOCK_FLIGHTS = [
     status: 'Scheduled',
     aircraft: 'Boeing 787-9 Dreamliner',
     baggage: '25kg free checked + 7kg carry-on',
-    emissions: '-20% CO2 reduction certified'
+    emissions: '-20% CO2 reduction certified',
+    seatsLeftSkyBoss: 8,
+    seatsLeftEco: 24,
+    seatsLeftPromo: 24
   },
   {
     id: 4,
@@ -64,7 +73,10 @@ const MOCK_FLIGHTS = [
     status: 'Scheduled',
     aircraft: 'Airbus A350-900 XWB',
     baggage: '30kg free checked + 7kg carry-on',
-    emissions: '-15% CO2 reduction certified'
+    emissions: '-15% CO2 reduction certified',
+    seatsLeftSkyBoss: 8,
+    seatsLeftEco: 24,
+    seatsLeftPromo: 24
   },
   {
     id: 5,
@@ -80,7 +92,10 @@ const MOCK_FLIGHTS = [
     status: 'Scheduled',
     aircraft: 'Boeing 787-9 Dreamliner',
     baggage: '25kg free checked + 7kg carry-on',
-    emissions: '-20% CO2 reduction certified'
+    emissions: '-20% CO2 reduction certified',
+    seatsLeftSkyBoss: 8,
+    seatsLeftEco: 24,
+    seatsLeftPromo: 24
   }
 ];
 
@@ -91,6 +106,7 @@ const FARE_TIERS = [
     key: 'Promo',
     label: 'Tiết Kiệm',
     priceField: 'pricePromo',
+    seatsLeftField: 'seatsLeftPromo',
     accent: 'slate',
     perks: [
       { ok: false, text: 'Hoàn/đổi vé' },
@@ -103,6 +119,7 @@ const FARE_TIERS = [
     key: 'Eco',
     label: 'Phổ Thông',
     priceField: 'priceEco',
+    seatsLeftField: 'seatsLeftEco',
     accent: 'emerald',
     perks: [
       { ok: true,  text: 'Đổi vé (phụ phí)' },
@@ -115,6 +132,7 @@ const FARE_TIERS = [
     key: 'SkyBoss',
     label: 'Thương Gia',
     priceField: 'priceSkyBoss',
+    seatsLeftField: 'seatsLeftSkyBoss',
     accent: 'amber',
     perks: [
       { ok: true, text: 'Hoàn/đổi vé miễn phí' },
@@ -673,7 +691,7 @@ function navigateTo(screenId) {
   const screens = [
     'screen-auth', 'screen-lobby', 'screen-search', 'screen-select-flight', 
     'screen-passenger', 'screen-seats', 'screen-extras', 
-    'screen-checkout', 'screen-success', 'screen-error', 'screen-admin', 'screen-php'
+    'screen-checkout', 'screen-success', 'screen-error', 'screen-guest-cancel', 'screen-admin', 'screen-php'
   ];
   
   screens.forEach(s => {
@@ -689,9 +707,10 @@ function navigateTo(screenId) {
   updateNavbar();
 
   // Cập nhật ngay trạng thái đồng hồ Time Left (không cần chờ interval 1s tiếp theo)
+  // Không check isLoggedIn — đồng hồ giữ chỗ áp dụng cho cả khách lẻ chưa đăng nhập.
   const timerBadge = document.getElementById('timer-badge');
   if (timerBadge) {
-    timerBadge.classList.toggle('hidden', !isLoggedIn || !BOOKING_FLOW_SCREENS.includes(screenId));
+    timerBadge.classList.toggle('hidden', !BOOKING_FLOW_SCREENS.includes(screenId));
   }
 
   // Draw appropriate state parameters
@@ -1175,7 +1194,14 @@ function updateExtrasFloatingRibbon() {
 // Initialize layout elements
 function initializeApp() {
   lucide.createIcons();
-  startCountdown(true); // resume=true: nếu vừa F5 lại trang giữa lúc đặt vé, khôi phục đúng deadline cũ từ localStorage
+  // CHỈ khôi phục đồng hồ nếu trước đó ĐÃ CÓ deadline thật trong localStorage
+  // (tức người dùng vừa F5 lại trang giữa lúc đang đặt vé). Tuyệt đối KHÔNG tự
+  // tạo deadline mới ở đây — vì lúc mới mở app/chưa đăng nhập thì chưa có gì để
+  // "tạm đặt vé" cả, nên chưa nên đếm giờ giữ chỗ.
+  const savedDeadline = Number(localStorage.getItem(BOOKING_DEADLINE_KEY));
+  if (savedDeadline && savedDeadline > Date.now()) {
+    startCountdown(true);
+  }
   setupActionListeners();
   renderMegaNavBar();
   loadFlightsFromServer(); // chạy nền — không cần chờ vẫn cho hiện màn đăng nhập ngay
@@ -1185,44 +1211,50 @@ function initializeApp() {
 }
 
 // Timer management
-// Tham số `resume`: true = đọc deadline cũ từ localStorage nếu còn hợp lệ (dùng khi mới load trang/F5);
-//                   false (mặc định) = LUÔN tạo deadline mới +30 phút (dùng khi đăng nhập / bắt đầu đặt vé mới).
+// Tham số `resume`: true = đọc deadline cũ từ localStorage nếu còn hợp lệ (dùng khi mới load trang/F5
+//                    giữa lúc đang đặt vé); false (mặc định) = LUÔN tạo deadline mới +30 phút
+//                    (dùng khi vừa "tạm đặt vé" — chọn xong chuyến bay cần đặt).
 function startCountdown(resume = false) {
   if (timerId) clearInterval(timerId);
 
   const THIRTY_MINUTES_MS = 30 * 60 * 1000;
-  let deadline = null;
+  let needNewDeadline = true;
 
   if (resume) {
     // Thử khôi phục deadline đã lưu trước đó (ví dụ người dùng vừa F5 lại trang
     // giữa bước Chọn Ghế). Nếu deadline cũ đã trôi qua hoặc không hợp lệ, coi như
-    // không có gì để khôi phục — KHÔNG tự cấp thêm 30 phút mới ở đây.
+    // không có gì để khôi phục — sẽ cấp deadline mới ở dưới.
     const saved = Number(localStorage.getItem(BOOKING_DEADLINE_KEY));
     if (saved && saved > Date.now()) {
-      deadline = saved;
+      needNewDeadline = false;
     }
   }
 
-  if (!deadline) {
-    deadline = Date.now() + THIRTY_MINUTES_MS;
-    localStorage.setItem(BOOKING_DEADLINE_KEY, String(deadline));
+  if (needNewDeadline) {
+    localStorage.setItem(BOOKING_DEADLINE_KEY, String(Date.now() + THIRTY_MINUTES_MS));
   }
 
   const timerBadgeValue = document.getElementById('timer-badge-value');
   const timerBadge = document.getElementById('timer-badge');
 
-  // Hàm tính lại số giây còn lại NGAY TỪ deadline mỗi lần tick — đây chính là điểm
-  // đảm bảo đồng bộ: dù mở lại tab khác hay F5, deadline trong localStorage không đổi
-  // nên mọi nơi tính ra cùng 1 kết quả "còn lại bao nhiêu giây".
+  // QUAN TRỌNG: đọc lại deadline từ localStorage NGAY TRONG MỖI TICK (không lưu deadline
+  // vào 1 biến cục bộ rồi dùng lại qua closure). Đây là điểm then chốt để đồng bộ thật
+  // giữa nhiều tab/màn hình: nếu tab khác (vd. vừa đặt vé xong, gọi startCountdown() cấp
+  // deadline mới) ghi đè localStorage, thì NGAY TICK KẾ TIẾP (trong vòng 1 giây) tab này
+  // cũng tự động đọc ra deadline mới giống nhau — không cần đợi reload trang.
   timerId = setInterval(() => {
-    if (!isLoggedIn || !BOOKING_FLOW_SCREENS.includes(activeScreen)) {
+    // LƯU Ý: không check isLoggedIn ở đây — theo đề bài, "Người đặt vé" KHÔNG bắt
+    // buộc phải đăng nhập (book.php cho phép user_id NULL), nên đồng hồ giữ chỗ
+    // phải áp dụng cho cả khách lẻ chưa đăng nhập, chỉ cần đang ở luồng đặt vé.
+    if (!BOOKING_FLOW_SCREENS.includes(activeScreen)) {
       if (timerBadge) timerBadge.classList.add('hidden');
       return;
     }
 
     if (timerBadge) timerBadge.classList.remove('hidden');
 
-    sessionTimeLeft = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+    const deadline = Number(localStorage.getItem(BOOKING_DEADLINE_KEY));
+    sessionTimeLeft = deadline ? Math.max(0, Math.round((deadline - Date.now()) / 1000)) : 0;
 
     if (sessionTimeLeft <= 0) {
       clearInterval(timerId);
@@ -1271,12 +1303,16 @@ function startCountdown(resume = false) {
 function handleBookingSessionExpired() {
   currentBooking = createFreshBooking(); // Hủy sạch dữ liệu giữ ghế/hành khách đang đặt dở
 
-  // Đăng xuất "âm thầm" phía server, KHÔNG gọi logoutUser() trực tiếp vì hàm đó
-  // tự navigateTo('auth') — ở đây ta muốn tự kiểm soát điều hướng tới screen-error.
-  fetch(`${API_BASE}/logout.php`, { method: 'POST' }).catch(() => {});
-  isLoggedIn = false;
-  userFullName = '';
-  userRole = 'user';
+  // Chỉ đăng xuất nếu người dùng THỰC SỰ đang có phiên đăng nhập — vì giờ đồng
+  // hồ giữ chỗ áp dụng cho cả khách lẻ chưa đăng nhập (theo đề bài), không nên
+  // gọi logout.php một cách vô nghĩa hoặc đổi trạng thái UI khi chẳng có gì để
+  // đăng xuất cả.
+  if (isLoggedIn) {
+    fetch(`${API_BASE}/logout.php`, { method: 'POST' }).catch(() => {});
+    isLoggedIn = false;
+    userFullName = '';
+    userRole = 'user';
+  }
 
   navigateTo('error');
 }
@@ -1442,7 +1478,9 @@ function setupActionListeners() {
         triggerToast(`👋 Chào mừng Hội viên: ${userFullName}!`);
         await loadMyBookingsFromServer();
         navigateTo('lobby');
-        startCountdown();
+        // KHÔNG gọi startCountdown() ở đây — đồng hồ 30 phút theo đề bài chỉ tính
+        // từ lúc TẠM ĐẶT VÉ (chọn xong chuyến bay), không phải từ lúc đăng nhập.
+        // Xem selectBookingFlight() / selectReturnFlight() là nơi thật sự cấp deadline.
       } catch (err) {
         // Không kết nối được SQL Server -> thử khớp với danh sách tài khoản tạm trong bộ nhớ
         const userRecord = usersAccounts.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -1454,7 +1492,7 @@ function setupActionListeners() {
           currentBooking = createFreshBooking();
           triggerToast(`👋 (Offline) Chào mừng Hội viên: ${userFullName}! Lưu ý: chưa kết nối SQL Server nên KHÔNG có dữ liệu vé thật.`);
           navigateTo('lobby');
-          startCountdown();
+          // Không startCountdown() ở đây — lý do tương tự nhánh login thật phía trên.
         } else {
           triggerToast('⚠️ Không kết nối được SQL Server và không khớp tài khoản tạm.');
         }
@@ -1474,7 +1512,7 @@ function setupActionListeners() {
       userFullName = 'Nguyễn Đăng Khoa';
       triggerToast('🎉 Đăng nhập nhanh Hội Viên thành công!');
       navigateTo('lobby');
-      startCountdown();
+      // Không startCountdown() ở đây — đồng hồ chỉ bắt đầu khi tạm đặt vé.
     });
   }
 
@@ -1668,11 +1706,12 @@ function setupActionListeners() {
         };
         bookingsDb.push(newBookingRef);
 
-        // Đặt vé xong: cấp lại đồng hồ giữ chỗ MỚI (30 phút tính từ giờ) cho lượt
-        // đặt vé tiếp theo của cùng phiên đăng nhập này — tránh trường hợp người
-        // dùng vừa đặt vé xong, bấm "Đặt chuyến mới" thì đồng hồ đã gần hết hạn
-        // (vì vẫn là deadline cũ còn sót lại từ lượt đặt vé trước).
-        startCountdown();
+        // Đặt vé đã hoàn tất thành công — KHÔNG cần đồng hồ giữ chỗ nữa.
+        // Dọn deadline cũ trong localStorage để tránh sót lại mốc giờ không còn
+        // ý nghĩa; lần đặt vé KẾ TIẾP sẽ được cấp deadline mới khi người dùng
+        // thực sự chọn chuyến bay (xem selectBookingFlight/selectReturnFlight).
+        localStorage.removeItem(BOOKING_DEADLINE_KEY);
+        if (timerId) clearInterval(timerId);
 
         // Display Success Screen Ticket
         renderSuccessTicket(newBookingRef);
@@ -1709,14 +1748,58 @@ function setupActionListeners() {
     });
   }
 
-  // Nút "Quay về tìm chuyến bay" trên screen-error (hết giờ giữ chỗ).
-  // Lúc này handleBookingSessionExpired() đã đăng xuất user rồi, nên đưa về
-  // màn đăng nhập (auth) là đúng — không thể vào thẳng 'search' vì màn đó
-  // yêu cầu đã đăng nhập (xem require_login() phía các API liên quan).
+  // Nút "Quay về tìm chuyến bay" trên screen-error (hết giờ giữ chỗ tạm đặt).
+  // Đưa thẳng về 'search' — màn tìm chuyến bay không yêu cầu đăng nhập (cả theo
+  // navigateTo() và theo đề bài: "Người đặt vé" không bắt buộc có tài khoản).
   const btnErrorBackToSearch = document.getElementById('btn-error-back-to-search');
   if (btnErrorBackToSearch) {
     btnErrorBackToSearch.addEventListener('click', () => {
-      navigateTo('auth');
+      navigateTo('search');
+    });
+  }
+
+  // Form tra cứu/hủy vé cho KHÁCH LẺ chưa đăng nhập — xác minh bằng Mã vé +
+  // Số CMND/Passport (gọi cancel_booking_guest.php, KHÔNG dùng cancel_booking.php
+  // vì API đó yêu cầu session đăng nhập mà khách lẻ không có).
+  const guestCancelForm = document.getElementById('guest-cancel-form');
+  if (guestCancelForm) {
+    guestCancelForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bookingCode = document.getElementById('guest-cancel-booking-code').value.trim();
+      const passportId = document.getElementById('guest-cancel-passport').value.trim();
+      const btnSubmit = document.getElementById('btn-guest-cancel-submit');
+
+      if (!bookingCode || !passportId) {
+        triggerToast('⚠️ Vui lòng nhập đầy đủ Mã vé và Số CMND/Passport!');
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      triggerToast('⏳ Đang xác minh và xử lý hủy vé...');
+
+      try {
+        const res = await fetch(`${API_BASE}/cancel_booking_guest.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: bookingCode, passportId })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          triggerToast(`❌ ${data.message || 'Không thể hủy vé. Vui lòng kiểm tra lại thông tin.'}`);
+          btnSubmit.disabled = false;
+          return;
+        }
+
+        triggerToast(`✅ Vé ${bookingCode} đã được hủy thành công!`);
+        playChime('success');
+        guestCancelForm.reset();
+        btnSubmit.disabled = false;
+      } catch (err) {
+        triggerToast('❌ Không kết nối được SQL Server — vé KHÔNG được hủy. Vui lòng kiểm tra lại XAMPP/driver rồi thử lại!');
+        console.warn('⚠️ Không đồng bộ được việc hủy vé khách lẻ với SQL Server. Lý do:', err.message);
+        btnSubmit.disabled = false;
+      }
     });
   }
 
@@ -1745,7 +1828,7 @@ function setupActionListeners() {
         isLoggedIn = true;
         userRole = 'user';
         userFullName = 'Nhóm trưởng Đồ Án';
-        startCountdown();
+        // Không startCountdown() — màn xem mã nguồn PHP không thuộc luồng đặt vé.
       }
       navigateTo('php_project');
       return;
@@ -1782,7 +1865,7 @@ async function loginAsAdminViaShortcut() {
       userFullName = data.user.fullName;
       triggerToast('🔑 KÍCH HOẠT CHẾ ĐỘ QUẢN TRỊ VIÊN (ADMIN) THÀNH CÔNG!');
       navigateTo('admin');
-      startCountdown();
+      // Không startCountdown() — khu vực Admin không thuộc luồng đặt vé của đề bài.
       await loadAdminBookingsFromServer();
       return;
     }
@@ -1798,7 +1881,7 @@ async function loginAsAdminViaShortcut() {
   userFullName = 'Quản Trị Viên Hệ Thống (Offline)';
   triggerToast('🔑 KÍCH HOẠT ADMIN — chế độ OFFLINE (chưa kết nối SQL Server, không có dữ liệu thật)!');
   navigateTo('admin');
-  startCountdown();
+  // Không startCountdown() — lý do tương tự nhánh admin online phía trên.
 }
 
 // Global user logouts
@@ -1859,7 +1942,9 @@ function updateNavbar() {
     if (userProfileBadge) userProfileBadge.classList.add('hidden');
     if (btnHeaderLogout) btnHeaderLogout.classList.add('hidden');
     if (btnManageLobby) btnManageLobby.classList.add('hidden');
-    if (btnManageSearch) btnManageSearch.classList.add('hidden');
+    // "Tìm chuyến bay" vẫn hiện cho khách lẻ chưa đăng nhập — đề bài cho phép
+    // đặt vé không cần tài khoản, nên không có lý do ẩn lối vào luồng đặt vé.
+    if (btnManageSearch) btnManageSearch.classList.remove('hidden');
     if (btnManageAdmin) btnManageAdmin.classList.add('hidden');
     if (btnManagePhp) btnManagePhp.classList.add('hidden');
     if (brandSub) brandSub.textContent = 'VANILLA EDITION';
@@ -2133,6 +2218,10 @@ function buildFlightCardHtml(flight) {
 
   const fareColumnsHtml = FARE_TIERS.map(tier => {
     const price = flight[tier.priceField];
+    // Field có thể chưa tồn tại nếu dữ liệu cũ chưa kịp cập nhật -> fallback an
+    // toàn về 0 thay vì để hiển thị "undefined" ra giao diện.
+    const seatsLeft = flight[tier.seatsLeftField] ?? 0;
+    const isSoldOut = seatsLeft <= 0;
     const accent = ACCENT_STYLES[tier.accent];
     const perksHtml = tier.perks.map(perk => `
       <li class="flex items-center gap-1.5 text-[11px] ${perk.ok ? 'text-slate-700' : 'text-slate-400'}">
@@ -2141,13 +2230,23 @@ function buildFlightCardHtml(flight) {
       </li>
     `).join('');
 
+    // Badge số vé còn: đổi màu cảnh báo khi sắp hết (≤3 vé) hoặc đã hết hẳn.
+    const seatsBadgeHtml = isSoldOut
+      ? `<span class="inline-block self-start px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-red-50 text-red-600">Hết vé</span>`
+      : seatsLeft <= 3
+      ? `<span class="inline-block self-start px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-50 text-amber-700">Còn ${seatsLeft} vé</span>`
+      : `<span class="inline-block self-start px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400">Còn ${seatsLeft} vé</span>`;
+
     return `
-      <div class="flex-1 min-w-[180px] rounded-2xl border-2 ${accent.ring} p-4 flex flex-col gap-3 bg-white">
-        <span class="inline-block self-start px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase ${accent.badge}">${tier.label}</span>
+      <div class="flex-1 min-w-[180px] rounded-2xl border-2 ${accent.ring} p-4 flex flex-col gap-3 bg-white ${isSoldOut ? 'opacity-60' : ''}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="inline-block self-start px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase ${accent.badge}">${tier.label}</span>
+          ${seatsBadgeHtml}
+        </div>
         <strong class="text-2xl font-black text-slate-900">$${price.toLocaleString()}</strong>
         <ul class="flex flex-col gap-1.5">${perksHtml}</ul>
-        <button onclick="selectBookingFlight(${flight.id}, '${tier.key}')" class="mt-1 w-full py-2.5 ${accent.btn} text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" ${isCancelled ? 'disabled' : ''}>
-          Chọn vé
+        <button onclick="selectBookingFlight(${flight.id}, '${tier.key}')" class="mt-1 w-full py-2.5 ${accent.btn} text-white font-bold rounded-xl transition-all text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" ${isCancelled || isSoldOut ? 'disabled' : ''}>
+          ${isSoldOut ? 'Đã hết vé' : 'Chọn vé'}
         </button>
       </div>
     `;
@@ -2199,6 +2298,18 @@ function selectBookingFlight(id, cabinClass) {
     return;
   }
 
+  // Kiểm tra sớm phía client (dữ liệu seatsLeft từ lần tải flightsDb gần nhất).
+  // Đây CHỈ là lớp cảnh báo UX — kiểm tra THẬT SỰ đáng tin cậy vẫn nằm ở book.php
+  // (chạy trong transaction, khóa dòng FOR UPDATE) vì dữ liệu ở đây có thể đã cũ
+  // nếu người khác vừa đặt vé trong lúc mình đang xem màn hình này.
+  const tier = FARE_TIERS.find(t => t.key === (cabinClass || 'Eco'));
+  const seatsLeft = tier ? (selected[tier.seatsLeftField] ?? 0) : 0;
+  if (seatsLeft <= 0) {
+    triggerToast('❌ Rất tiếc, hạng vé này vừa hết chỗ! Vui lòng chọn hạng khác hoặc chuyến bay khác.');
+    navigateTo('select_flight'); // vẽ lại danh sách để cập nhật số vé còn mới nhất
+    return;
+  }
+
   currentBooking.selectedFlight = selected;
   currentBooking.cabinClass = cabinClass || 'Eco';
 
@@ -2206,9 +2317,16 @@ function selectBookingFlight(id, cabinClass) {
     triggerToast(`🎫 Đã chọn chuyến đi ${selected.flightNumber} — Hạng ${getCabinLabelShort(currentBooking.cabinClass)}. Giờ chọn chuyến về!`);
     currentBooking.selectingReturnLeg = true;
     navigateTo('select_flight'); // tái sử dụng lại màn này, đổi sang chế độ chọn CHUYẾN VỀ
+    // CHƯA startCountdown() ở đây — khứ hồi phải chọn xong CẢ 2 chặng mới coi là
+    // "tạm đặt vé" hoàn tất (xem selectReturnFlight() là nơi thật sự cấp deadline).
   } else {
     triggerToast(`🎫 Đã chọn ${selected.flightNumber} — Hạng ${getCabinLabelShort(currentBooking.cabinClass)}`);
     navigateTo('passenger');
+    // Một chiều: chọn xong chuyến bay này là đã "tạm đặt vé" theo đề bài ("Nếu
+    // còn đủ thì hệ thống sẽ tạm đặt số vé như khách hàng yêu cầu. Nếu trong 30
+    // phút mà người dùng không hoàn tất thủ tục đăng kí thì sẽ xóa giao dịch
+    // này.") -> bắt đầu đếm 30 phút NGAY tại đây, không phải từ lúc đăng nhập.
+    startCountdown();
   }
 }
 
@@ -2226,6 +2344,9 @@ function selectReturnFlight(id) {
   currentBooking.selectingReturnLeg = false;
   triggerToast(`🎫 Đã chọn chuyến về ${selected.flightNumber}`);
   navigateTo('passenger');
+  // Khứ hồi: chọn xong CẢ 2 chặng (đi + về) mới coi là "tạm đặt vé" hoàn tất
+  // theo đề bài -> bắt đầu đếm 30 phút tại đây.
+  startCountdown();
 }
 window.selectReturnFlight = selectReturnFlight;
 

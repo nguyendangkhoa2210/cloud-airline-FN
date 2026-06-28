@@ -38,8 +38,60 @@ if (!$outboundFlightId || !$departureDate || empty($passengers)) {
 $userId = $_SESSION['user_id'] ?? null;
 $bookingCode = 'CH-' . random_int(100000, 999999);
 
+// ============================================================================
+// KIỂM TRA ĐỦ VÉ THEO HẠNG (yêu cầu đề bài: "Nếu không còn đủ vé thì hệ thống
+// sẽ thông báo cho người dùng"). Quy ước số ghế khớp với sơ đồ ghế cố định
+// 4 hàng (A-D) x 8 cột trong renderSeatsScreen() của frontend:
+// - Cột 1-2 (8 ghế)  = hạng SkyBoss (Thương Gia)
+// - Cột 3-8 (24 ghế) = hạng Eco + Promo dùng CHUNG (Phổ Thông), vì 2 hạng này
+//   không có sơ đồ ghế tách biệt trong giao diện.
+// ============================================================================
+const TOTAL_SEATS_SKYBOSS = 8;
+const TOTAL_SEATS_ECONOMY = 24;
+
+// Đặt TRONG transaction (xem bước kiểm tra ở dưới, sau beginTransaction) để
+// đảm bảo không có 2 giao dịch nào cùng "đếm thấy còn vé" rồi cùng insert đè
+// lên nhau — MySQL InnoDB sẽ tự khóa các dòng đọc được bên trong transaction.
+
 try {
     $pdo->beginTransaction();
+
+    // Đếm số ghế đã Confirmed cho chuyến bay này, lấy luôn để kiểm tra đủ vé
+    $stmtBookedSeats = $pdo->prepare('
+        SELECT bp.seat_number
+        FROM booking_passengers bp
+        JOIN bookings b ON b.id = bp.booking_id
+        WHERE b.outbound_flight_id = ?
+          AND b.status = \'Confirmed\'
+        FOR UPDATE
+    ');
+    $stmtBookedSeats->execute([$outboundFlightId]);
+    $bookedSeatNumbers = array_column($stmtBookedSeats->fetchAll(), 'seat_number');
+
+    $bookedSkyBoss = 0;
+    $bookedEconomy = 0;
+    foreach ($bookedSeatNumbers as $seat) {
+        $col = (int) substr($seat, 1);
+        if ($col >= 1 && $col <= 2) {
+            $bookedSkyBoss++;
+        } elseif ($col >= 3 && $col <= 8) {
+            $bookedEconomy++;
+        }
+    }
+
+    $seatsLeftForClass = ($cabinClass === 'SkyBoss')
+        ? (TOTAL_SEATS_SKYBOSS - $bookedSkyBoss)
+        : (TOTAL_SEATS_ECONOMY - $bookedEconomy);
+
+    $requestedCount = count($passengers);
+
+    if ($seatsLeftForClass < $requestedCount) {
+        $pdo->rollBack();
+        json_response([
+            'success' => false,
+            'message' => "Không còn đủ vé hạng đã chọn! Chỉ còn {$seatsLeftForClass} vé trống, bạn yêu cầu {$requestedCount} vé.",
+        ], 409);
+    }
 
     // 1. Insert Booking
     // Bản MySQL: bỏ "OUTPUT INSERTED.id", lấy id bằng lastInsertId() sau khi execute()

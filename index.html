@@ -264,6 +264,20 @@
                   <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
               </form>
+
+              <!-- Lối đặt vé KHÔNG cần tài khoản — đúng yêu cầu đề bài: "Người đặt vé"
+                   không bắt buộc phải đăng nhập. Đăng nhập chỉ cần khi muốn dùng các
+                   tiện ích mở rộng dành cho hội viên (lưu lịch sử nhiều vé, v.v.) —
+                   khách lẻ vẫn tự hủy được vé của mình qua mã vé + passport, xem nút
+                   "Tra cứu / Hủy vé" bên dưới. -->
+              <div class="mt-5 pt-5 border-t border-white/10 text-center flex flex-col gap-2">
+                <button type="button" onclick="navigateTo('search')" class="text-xs font-mono text-[#bacbbc] hover:text-emerald-400 transition-all underline decoration-dotted">
+                  Đặt vé ngay với tư cách khách lẻ, không cần đăng nhập →
+                </button>
+                <button type="button" onclick="navigateTo('guest_cancel')" class="text-xs font-mono text-[#bacbbc] hover:text-emerald-400 transition-all underline decoration-dotted">
+                  Tra cứu / Hủy vé đã đặt (khách lẻ, không cần đăng nhập) →
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1113,6 +1127,43 @@
             </button>
           </div>
         </div>
+
+        <!-- ==================== 7C. GUEST CANCEL BOOKING SCREEN ==================== -->
+        <!-- Cho khách lẻ (chưa đăng nhập) tự hủy vé bằng Mã vé + Số CMND/Passport của
+             1 trong các hành khách trên vé — vì khách lẻ không có session để xác định
+             "ai là chủ vé" như cancel_booking.php (yêu cầu đăng nhập) đang dùng. -->
+        <div id="screen-guest-cancel" class="hidden w-full max-w-lg mx-auto flex flex-col items-center gap-6 justify-center text-center">
+          <div class="glass-card w-full rounded-3xl overflow-hidden border border-slate-200 shadow-3xl p-8 flex flex-col items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center">
+              <i data-lucide="ticket-x" class="w-8 h-8 text-sky-500"></i>
+            </div>
+            <h2 class="text-xl font-display font-bold">Tra Cứu / Hủy Vé (Khách Lẻ)</h2>
+            <p class="text-sm text-slate-500 leading-relaxed">
+              Nhập đúng Mã vé và Số CMND/Passport của một hành khách trên vé để xác minh và hủy.
+              Cách này chỉ áp dụng cho vé đặt KHÔNG qua tài khoản hội viên.
+            </p>
+
+            <form id="guest-cancel-form" class="w-full flex flex-col gap-4 text-left">
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">MÃ VÉ</label>
+                <input type="text" id="guest-cancel-booking-code" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="CH-123456">
+              </div>
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">SỐ CMND / PASSPORT (CỦA 1 HÀNH KHÁCH TRÊN VÉ)</label>
+                <input type="text" id="guest-cancel-passport" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="B12345678">
+              </div>
+              <button type="submit" id="btn-guest-cancel-submit" class="w-full px-8 py-3.5 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer hover:shadow-lg disabled:opacity-50">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+                <span>XÁC NHẬN HỦY VÉ</span>
+              </button>
+            </form>
+
+            <button onclick="navigateTo('auth')" class="text-xs font-mono text-slate-400 hover:text-slate-600 transition-all underline decoration-dotted">
+              ← Quay về màn đăng nhập
+            </button>
+          </div>
+        </div>
+
 
         <!-- ==================== 8. ADMINISTRATIVE DASHBOARD SCREEN ==================== -->
         <div id="screen-admin" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-6 text-left">

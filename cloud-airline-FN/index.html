@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Airline - Dự Án Hệ Thống Đặt Vé Máy Bay Công Nghệ Phần Mềm</title>
+    
+    <!-- Fonts pairing -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Engine Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+              display: ['Space Grotesk', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- Local style sheets -->
+    <link rel="stylesheet" href="assets/style.css">
+    
+    <!-- Lucide feather icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Vanilla application engine -->
+    <script src="assets/app.js" defer></script>
+  </head>
+  <body class="bg-[#0b1326] text-white min-h-screen flex flex-col relative transition-all duration-300">
+    
+    <!-- Ambient glowing backgrounds -->
+    <div id="app-wrapper" class="flex-grow flex flex-col relative min-h-screen">
+      <div class="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-sky-100/40 to-transparent -z-20 pointer-events-none"></div>
+      <div class="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-sky-500/10 rounded-full blur-[120px] -z-20 pointer-events-none"></div>
+      <div class="absolute bottom-10 right-10 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[150px] -z-20 pointer-events-none"></div>
+
+      <!-- APP HEADER AND NAVIGATION SYSTEM -->
+      <nav class="glass-panel sticky top-0 z-40 px-10 py-4 flex items-center justify-between border-b border-white/5 transition-all">
+        <!-- Logo Area -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-[#2af598] flex items-center justify-center shadow-[0_0_20px_rgba(42,245,152,0.3)]">
+            <i data-lucide="plane" class="w-5 h-5 text-black"></i>
+          </div>
+          <div class="text-left font-display">
+            <span class="block text-lg font-black tracking-wider text-white">CLOUD AIRLINE</span>
+            <span id="brand-sub" class="text-[9px] text-[#2af598] font-mono tracking-widest block font-bold uppercase">VANILLA EDITION</span>
+          </div>
+        </div>
+
+        <!-- Custom navigation tabs triggers -->
+        <div class="hidden md:flex items-center gap-8 font-mono text-xs font-semibold">
+          <span id="nav-lobby-hub" class="hidden">
+            <button id="link-nav-lobby" onclick="navigateTo('lobby')" class="text-[#2af598] font-bold py-1.5 transition-all cursor-pointer">
+              SẢNH CHUNG
+            </button>
+          </span>
+          <span id="nav-flight-search" class="hidden">
+            <button id="link-nav-search" onclick="navigateTo('search')" class="text-[#bacbbc] hover:text-[#d0ffdc] py-1.5 transition-all cursor-pointer">
+              ĐẶT VÉ BAY
+            </button>
+          </span>
+          <span id="nav-admin-console" class="hidden">
+            <button id="link-nav-admin" onclick="navigateTo('admin')" class="text-[#bacbbc] hover:text-[#d0ffdc] py-1.5 transition-all cursor-pointer">
+              BẢNG HÀNH KHÁCH ADMIN
+            </button>
+          </span>
+          <span id="nav-php-project" class="hidden">
+            <button id="link-nav-php" onclick="navigateTo('php_project')" class="text-[#bacbbc] hover:text-[#d0ffdc] py-1.5 transition-all cursor-pointer">
+              📚 PHP & MYSQL SOURCE
+            </button>
+          </span>
+        </div>
+
+        <!-- Session timers + controllers -->
+        <div class="flex items-center gap-4">
+          <!-- Live session countdown timer -->
+          <div id="timer-badge" class="hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono text-[10px] font-bold transition-all">
+            <i data-lucide="clock" class="w-3.5 h-3.5 animate-pulse"></i>
+            <span>TIME LEFT:</span>
+            <span id="timer-badge-value">10:00</span>
+          </div>
+
+          <!-- Active Profile sign inside nav -->
+          <div id="user-profile-badge" class="hidden flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full font-mono text-[11px] text-[#bacbbc]">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span id="user-profile-name" class="font-bold">USER_INFO</span>
+          </div>
+
+          <!-- Sign Out header clicker -->
+          <button id="btn-header-logout" class="hidden p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-all cursor-pointer border border-red-500/20" title="Đăng Xuất Khỏi Hệ Thống">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </nav>
+
+      <!-- MEGA MENU BAR — điều hướng tổng quan kiểu các hãng hàng không lớn (luôn hiển thị) -->
+      <div class="hidden lg:flex items-center justify-center gap-1 bg-white border-b border-slate-200 px-6 relative z-30" id="mega-nav-bar">
+        <!-- 7 nút (6 danh mục + Trợ Giúp) được renderMegaNavBar() vẽ động từ MEGA_MENU -->
+      </div>
+
+      <!-- Lớp phủ mờ phía sau khung flyout — bấm ra ngoài để đóng menu -->
+      <div id="mega-menu-backdrop" onclick="closeMegaMenu()" class="hidden fixed inset-0 bg-slate-900/20 z-20"></div>
+
+      <!-- Khung nội dung sổ xuống (flyout) của danh mục đang được chọn -->
+      <div id="mega-menu-flyout" class="hidden bg-white border-b border-slate-200 shadow-xl relative z-30"></div>
+
+      <!-- BOOKING STEP WIZARD BAR -->
+      <div id="navigation-wizard-steps" class="hidden relative z-30 max-w-4xl mx-auto w-full px-6 mt-6">
+        <div class="glass-card rounded-2xl p-4 border border-white/10 shadow-lg flex items-center justify-between gap-2.5">
+          <!-- Step 1 -->
+          <div class="flex items-center gap-2.5 ml-1">
+            <div id="step-bubble-1" class="w-7 h-7 rounded-full flex items-center justify-center bg-[#2af598] text-black font-bold text-xs">1</div>
+            <span id="step-label-1" class="hidden sm:inline font-mono text-[10px] text-[#2af598] font-bold uppercase tracking-wider">CHỌN CHUYẾN</span>
+          </div>
+
+          <div id="step-line-1" class="flex-grow h-0.5 bg-white/10"></div>
+
+          <!-- Step 2 -->
+          <div class="flex items-center gap-2.5">
+            <div id="step-bubble-2" class="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/40 text-xs">2</div>
+            <span id="step-label-2" class="hidden sm:inline font-mono text-[10px] text-white/40 uppercase tracking-wider">CHỌN CHỖ</span>
+          </div>
+
+          <div id="step-line-2" class="flex-grow h-0.5 bg-white/10"></div>
+
+          <!-- Step 3 -->
+          <div class="flex items-center gap-2.5">
+            <div id="step-bubble-3" class="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/40 text-xs">3</div>
+            <span id="step-label-3" class="hidden sm:inline font-mono text-[10px] text-white/40 uppercase tracking-wider">TIỆN ÍCH DỊCH VỤ</span>
+          </div>
+
+          <div id="step-line-3" class="flex-grow h-0.5 bg-white/10"></div>
+
+          <!-- Step 4 -->
+          <div class="flex items-center gap-2.5 mr-1">
+            <div id="step-bubble-4" class="w-7 h-7 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-white/40 text-xs">4</div>
+            <span id="step-label-4" class="hidden sm:inline font-mono text-[10px] text-white/40 uppercase tracking-wider">XUẤT VÉ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN APP CONTENT PANELS HOUSING SCREENS -->
+      <main class="flex-grow flex flex-col z-10 px-6 sm:px-10 py-8 relative justify-center">
+
+        <!-- ==================== 0. AUTHENTICATION SCREEN (Customer Portal) ====================
+             Cổng đăng nhập này chỉ phục vụ HÀNH KHÁCH. Quản trị viên không đăng nhập ở đây —
+             trang quản trị được mở bằng tổ hợp phím tắt nội bộ dành riêng cho nhân viên. -->
+        <div id="screen-auth" class="hidden w-full max-w-5xl mx-auto bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-3xl p-0">
+          <div class="flex flex-col lg:flex-row w-full min-h-[550px]">
+            <!-- Side A: Brand hero (gradient, no external image — always renders, no broken-link risk) -->
+            <div class="dark-panel hidden lg:flex lg:w-1/2 relative overflow-hidden min-h-[500px] flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-sky-700 to-emerald-500">
+              <div class="absolute -top-16 -right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute -bottom-20 -left-10 w-80 h-80 bg-emerald-400/30 rounded-full blur-3xl pointer-events-none"></div>
+
+              <!-- Minh hoạ gốc: đường bay chấm chấm + mây + máy bay nhỏ (vẽ bằng SVG, không phụ thuộc ảnh ngoài) -->
+              <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 480 560" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g fill="white" fill-opacity="0.07">
+                  <ellipse cx="110" cy="140" rx="95" ry="32"/>
+                  <ellipse cx="165" cy="118" rx="58" ry="24"/>
+                  <ellipse cx="370" cy="445" rx="115" ry="36"/>
+                  <ellipse cx="415" cy="470" rx="65" ry="24"/>
+                </g>
+                <path d="M 55 470 Q 210 400 245 260 T 430 95" stroke="white" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="5 9" fill="none"/>
+                <circle cx="55" cy="470" r="5" fill="#6ee7b7"/>
+                <circle cx="245" cy="260" r="4" fill="white" fill-opacity="0.75"/>
+                <circle cx="430" cy="95" r="5" fill="#6ee7b7"/>
+                <g transform="translate(238,270) rotate(-38)">
+                  <path d="M0 4 L18 0 L18 8 L0 4 Z M9 -2 L9 10" stroke="white" stroke-width="1.5" fill="white"/>
+                </g>
+              </svg>
+
+              <span class="relative z-20 inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full bg-white/15 border border-white/25 text-[11px] font-mono font-bold uppercase tracking-widest text-white">
+                <i data-lucide="user-round" class="w-3.5 h-3.5"></i>
+                Cổng Hành Khách
+              </span>
+
+              <div class="relative z-20 max-w-sm text-left">
+                <i data-lucide="plane" class="w-10 h-10 text-emerald-200 mb-4"></i>
+                <h2 class="font-display text-4xl font-extrabold text-white mb-2 leading-tight">Beyond the <br><span class="accent">Horizon</span></h2>
+                <p class="text-sm text-white/85">Trải nghiệm đỉnh cao hàng không đẳng cấp quốc tế. Đặt vé, chọn ghế và quản lý hành trình của bạn chỉ trong vài bước.</p>
+              </div>
+            </div>
+
+            <!-- Side B: Interactive Forms Dual-Tab (LOGIN / SIGN UP) — dành cho hành khách -->
+            <div class="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center relative bg-white">
+              <!-- Subtitle or floating lights -->
+              <div class="absolute top-0 right-0 w-32 h-32 bg-[#2af598]/5 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <!-- Tabs -->
+              <div class="flex border-b border-white/10 mb-8">
+                <button type="button" class="flex-1 pb-3 text-xs font-mono font-bold tracking-wider text-center border-b-2 border-emerald-400 text-emerald-400" id="loginTab" onclick="switchLoginTab('login')">
+                  ĐĂNG NHẬP
+                </button>
+                <button type="button" class="flex-1 pb-3 text-xs font-mono font-bold tracking-wider text-center text-[#bacbbc] hover:text-[#d0ffdc]" id="signupTab" onclick="switchLoginTab('signup')">
+                  ĐĂNG KÝ THÀNH VIÊN
+                </button>
+              </div>
+
+              <!-- Form header info -->
+              <div class="mb-6 text-left" id="formHeader">
+                <h1 class="text-xl font-display font-black text-white">Chào Mừng Trở Lại</h1>
+                <p class="text-xs text-[#bacbbc] mt-1">Đăng nhập để đặt và quản lý thông tin chuyến bay trực tuyến.</p>
+                <p class="text-[10px] text-slate-400 mt-2 font-mono uppercase tracking-wider">Dành riêng cho hành khách Cloud Airline</p>
+              </div>
+
+              <!-- Real inputs form -->
+              <form id="auth-form" class="space-y-4 text-left">
+                <!-- Email field -->
+                <div class="group font-mono">
+                  <label class="text-[10px] font-mono font-bold text-[#bacbbc] block uppercase mb-1">EMAIL / TÀI KHOẢN</label>
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#bacbbc]/60 flex items-center">
+                      <i data-lucide="mail" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="auth-email" value="" class="w-full pl-12 bg-white/5 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-emerald-400 font-mono transition-all" placeholder="user@domain.com">
+                  </div>
+                </div>
+
+                <!-- Registration name field (Hidden in Login by default) -->
+                <div id="field-fullname" class="hidden group font-mono transition-all">
+                  <label class="text-[10px] font-mono font-bold text-[#bacbbc] block uppercase mb-1">HỌ VÀ TÊN HÀNH KHÁCH</label>
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#bacbbc]/60 flex items-center">
+                      <i data-lucide="user" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="auth-name" value="" class="w-full pl-12 bg-white/5 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-emerald-400 font-mono transition-all" placeholder="NGUYEN DANG KHOA">
+                  </div>
+                </div>
+
+                <!-- Password field -->
+                <div class="group font-mono">
+                  <label class="text-[10px] font-mono font-bold text-[#bacbbc] block uppercase mb-1">MẬT KHẨU BẢO MẬT</label>
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#bacbbc]/60 flex items-center">
+                      <i data-lucide="lock" class="w-4 h-4"></i>
+                    </span>
+                    <input type="password" id="auth-password" value="" class="w-full pl-12 bg-white/5 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-emerald-400 font-mono transition-all" placeholder="••••••••">
+                  </div>
+                </div>
+
+                <!-- Confirm password field (Hidden in Login by default) -->
+                <div id="field-confirm-password" class="hidden group font-mono transition-all">
+                  <label class="text-[10px] font-mono font-bold text-[#bacbbc] block uppercase mb-1">XÁC NHẬN MẬT KHẨU</label>
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[#bacbbc]/60 flex items-center">
+                      <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    </span>
+                    <input type="password" id="auth-confirm-password" value="" class="w-full pl-12 bg-white/5 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-emerald-400 font-mono transition-all" placeholder="••••••••">
+                  </div>
+                </div>
+
+                <!-- Submit button widget -->
+                <button type="submit" class="bloom-button w-full py-4.5 bg-gradient-to-r from-sky-500 to-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] text-white font-extrabold rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-2 cursor-pointer mt-6">
+                  <span id="submitText" class="font-bold tracking-wider uppercase">TIẾP TỤC ĐĂNG NHẬP</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+              </form>
+
+              <!-- Lối đặt vé KHÔNG cần tài khoản — đúng yêu cầu đề bài: "Người đặt vé"
+                   không bắt buộc phải đăng nhập. Đăng nhập chỉ cần khi muốn dùng các
+                   tiện ích mở rộng dành cho hội viên (lưu lịch sử nhiều vé, v.v.) —
+                   khách lẻ vẫn tự hủy được vé của mình qua mã vé + passport, xem nút
+                   "Tra cứu / Hủy vé" bên dưới. -->
+              <div class="mt-5 pt-5 border-t border-white/10 text-center flex flex-col gap-2">
+                <button type="button" onclick="navigateTo('search')" class="text-xs font-mono text-[#bacbbc] hover:text-emerald-400 transition-all underline decoration-dotted">
+                  Đặt vé ngay với tư cách khách lẻ, không cần đăng nhập →
+                </button>
+                <button type="button" onclick="navigateTo('guest_cancel')" class="text-xs font-mono text-[#bacbbc] hover:text-emerald-400 transition-all underline decoration-dotted">
+                  Tra cứu / Hủy vé đã đặt (khách lẻ, không cần đăng nhập) →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ==================== LOBBY CENTRAL HUD (SẢNH CHUNG) ==================== -->
+        <div id="screen-lobby" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-8 text-left">
+          <!-- Interactive Header Welcome and Navigation -->
+          <div class="dark-panel rounded-[2rem] p-8 border border-slate-700 shadow-2xl relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800">
+            <div class="absolute -right-10 -top-10 w-44 h-44 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <span class="text-xs font-mono text-emerald-400 uppercase tracking-widest block font-bold mb-1">CENTRAL TERMINAL HUD</span>
+                <h2 class="text-3xl font-display font-extrabold text-white tracking-tight">Sảnh Điều Hành Bay - Cloud Airline</h2>
+                <p class="text-xs text-slate-300 mt-1 font-mono">Chào mừng hành khách <span id="lobby-user-name" class="text-emerald-400 font-bold">---</span>. Bạn có thể tra cứu hành trình, quản lý lịch trình, đặt chuyến bay mới và hủy vé trực tuyến.</p>
+              </div>
+              <div>
+                <button onclick="navigateTo('search')" class="bloom-button bg-gradient-to-r from-sky-500 to-emerald-500 text-white font-bold text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg">
+                  <span class="font-bold">ĐẶT VÉ MÁY BAY NGAY</span>
+                  <i data-lucide="plane-takeoff" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khám Phá Điểm Đến — minh hoạ SVG gốc cho từng điểm đến, bấm vào để tìm vé nhanh -->
+          <div class="text-left">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-display font-extrabold text-slate-900">🌍 Khám Phá Điểm Đến</h3>
+              <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Bấm vào điểm đến để tìm vé ngay</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+
+              <!-- Đà Nẵng -->
+              <div onclick="quickSearchTo('Da Nang (DAD)')" class="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer h-44 bg-gradient-to-br from-sky-500 to-emerald-400">
+                <svg class="absolute inset-0 w-full h-full opacity-80" viewBox="0 0 300 176" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="250" cy="40" r="26" fill="#fef9c3" fill-opacity="0.85"/>
+                  <path d="M0 140 Q75 110 150 140 T300 140 V176 H0 Z" fill="white" fill-opacity="0.18"/>
+                  <path d="M0 155 Q75 130 150 155 T300 155 V176 H0 Z" fill="white" fill-opacity="0.25"/>
+                  <g stroke="white" stroke-opacity="0.5" stroke-width="3">
+                    <path d="M20 150 Q150 90 280 150"/>
+                  </g>
+                </svg>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/10 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-4 text-white">
+                  <span class="block text-base font-display font-extrabold">Đà Nẵng</span>
+                  <span class="block text-[11px] text-white/80 font-mono">Thành phố biển đáng sống nhất</span>
+                  <span class="inline-block mt-1.5 text-[11px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded-lg">từ $1,200</span>
+                </div>
+              </div>
+
+              <!-- London -->
+              <div onclick="quickSearchTo('London (LHR)')" class="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer h-44 bg-gradient-to-br from-slate-700 to-sky-600">
+                <svg class="absolute inset-0 w-full h-full opacity-80" viewBox="0 0 300 176" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="white" fill-opacity="0.22">
+                    <rect x="40" y="90" width="18" height="70"/>
+                    <rect x="64" y="70" width="14" height="90"/>
+                    <rect x="84" y="100" width="20" height="60"/>
+                    <rect x="210" y="60" width="16" height="100" rx="2"/>
+                    <circle cx="218" cy="52" r="10"/>
+                  </g>
+                  <g fill="white" fill-opacity="0.12">
+                    <ellipse cx="230" cy="40" rx="50" ry="16"/>
+                  </g>
+                </svg>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/10 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-4 text-white">
+                  <span class="block text-base font-display font-extrabold">London</span>
+                  <span class="block text-[11px] text-white/80 font-mono">Kinh đô lịch sử Châu Âu</span>
+                  <span class="inline-block mt-1.5 text-[11px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded-lg">từ $550</span>
+                </div>
+              </div>
+
+              <!-- New York -->
+              <div onclick="quickSearchTo('New York (JFK)')" class="group relative rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer h-44 bg-gradient-to-br from-indigo-700 to-slate-800">
+                <svg class="absolute inset-0 w-full h-full opacity-80" viewBox="0 0 300 176" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="white" fill-opacity="0.2">
+                    <rect x="30" y="80" width="16" height="80"/>
+                    <rect x="50" y="60" width="20" height="100"/>
+                    <rect x="74" y="95" width="14" height="65"/>
+                    <rect x="150" y="40" width="22" height="120"/>
+                    <rect x="178" y="70" width="16" height="90"/>
+                    <rect x="200" y="55" width="18" height="105"/>
+                  </g>
+                </svg>
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/10 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 p-4 text-white">
+                  <span class="block text-base font-display font-extrabold">New York</span>
+                  <span class="block text-[11px] text-white/80 font-mono">Thành phố không bao giờ ngủ</span>
+                  <span class="inline-block mt-1.5 text-[11px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded-lg">Điểm khởi hành</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Main grid layout of Lobby -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: schedules + Live Radar -->
+            <div class="lg:col-span-8 space-y-8 animate-in fade-in slide-in-from-bottom duration-500">
+              
+              <!-- BẢNG LỊCH TRÌNH BAY -->
+              <div class="glass-card rounded-[2rem] p-6 border border-white/10 shadow-xl bg-[#0c1326]/90">
+                <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="calendar" class="text-sky-400 w-5 h-5"></i>
+                    <h3 class="text-sm font-display font-bold text-white uppercase tracking-wider">🗓️ Bảng Lịch Trình Chuyến Bay Đang Bán</h3>
+                  </div>
+                  <span class="text-[9px] font-mono text-[#bacbbc] uppercase">SCHEDULED LIST</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr class="border-b border-white/10 text-[9px] text-[#bacbbc] uppercase">
+                        <th class="py-2.5 px-2">Mã Chuyến</th>
+                        <th class="py-2.5 px-2">Điểm Khởi Hành</th>
+                        <th class="py-2.5 px-2">Điểm Đến</th>
+                        <th class="py-2.5 px-2">Giờ Bay</th>
+                        <th class="py-2.5 px-2 text-emerald-400">Giá Phổ Thông</th>
+                        <th class="py-2.5 px-2 text-amber-400 text-right">Giá Thương Gia</th>
+                      </tr>
+                    </thead>
+                    <tbody id="lobby-schedules-table-body" class="divide-y divide-white/5 text-[#dae2fd]">
+                      <!-- Loaded via JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- BẢNG LIVE BAY RADAR -->
+              <div class="glass-card rounded-[2rem] p-6 border border-white/10 shadow-xl bg-[#0c1326]/90">
+                <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+                  <div class="flex items-center gap-2 text-emerald-400">
+                    <i data-lucide="wifi" class="animate-pulse w-5 h-5"></i>
+                    <h3 class="text-sm font-display font-bold text-white uppercase tracking-wider">📡 Trực Tiếp Trạng Thái Bay Radar</h3>
+                  </div>
+                  <span class="flex items-center gap-1 text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 uppercase">
+                    <span class="w-1 h-1 rounded-full bg-emerald-400 animate-ping"></span> Live Radar
+                  </span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="lobby-live-flights-container">
+                  <!-- Loaded via JS -->
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Historial & Cancellation -->
+            <div class="lg:col-span-4 animate-in fade-in slide-in-from-right duration-500">
+              
+              <!-- TỔNG HỢP VÉ ĐẶT VÀ HỦY CHUYẾN -->
+              <div class="glass-card rounded-[2rem] p-6 border border-white/10 shadow-xl bg-[#0c1326]/90 flex flex-col h-full min-h-[400px]">
+                <div class="border-b border-white/5 pb-4 flex justify-between items-center mb-4">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="ticket" class="text-amber-400 w-5 h-5"></i>
+                    <h3 class="text-sm font-display font-bold text-white uppercase tracking-wider">🎟️ Danh Sách Vé Đã Đặt</h3>
+                  </div>
+                  <span class="text-[9px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold" id="lobby-history-count">0 vé</span>
+                </div>
+
+                <div class="space-y-4 max-h-[500px] overflow-y-auto pr-1 flex-grow" id="lobby-history-list">
+                  <!-- Loaded via JS -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ==================== 1. FLIGHT HOME SEARCH SCREEN ==================== -->
+        <div id="screen-search" class="hidden w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start my-auto">
+          <!-- Left Big Form Container Column -->
+          <div class="lg:col-span-3 glass-card rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative overflow-hidden text-left bg-[#0c1326]/90">
+            <div class="absolute top-0 right-0 w-80 h-80 bg-sky-400/10 rounded-full blur-3xl -z-10"></div>
+            
+            <span class="text-[#2af598] font-mono text-xs tracking-wider uppercase font-bold flex items-center gap-1.5 mb-1.5">
+              <i data-lucide="plane-takeoff" class="w-4 h-4"></i> HÃNG HÀNG KHÔNG QUỐC TẾ CLOUD AIRLINE
+            </span>
+            <h2 class="text-2xl font-display font-bold text-white tracking-tight">Đặt chuyến bay thương mại trực tuyến</h2>
+            <p class="text-xs text-[#bacbbc] leading-relaxed mt-2 mb-8">Trực quan hóa lộ trình, quản lý chỗ ngồi 3D và tự chọn dịch vụ tiện ích đi kèm.</p>
+
+            <form id="search-form" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                <button type="button" onclick="swapOriginDestination()" title="Đổi chiều khởi hành ⇄ điểm đến" class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 hover:scale-110 text-white items-center justify-center shadow-lg transition-all cursor-pointer">
+                  <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                </button>
+                <div class="text-left font-mono">
+                  <label class="text-[10px] uppercase font-bold text-[#bacbbc] pl-1 mb-1 block">SÂN BAY KHỞI HÀNH (FROM)</label>
+                  <select id="search-origin" class="w-full bg-white/5 border border-white/10 px-4 py-3.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#2af598] font-mono transition-all">
+                    <option value="New York (JFK)" selected>New York (JFK) - Hoa Kỳ</option>
+                    <option value="Da Nang (DAD)">Đà Nẵng (DAD) - Việt Nam</option>
+                    <option value="London (LHR)">London (LHR) - Vương Quốc Anh</option>
+                  </select>
+                </div>
+
+                <div class="text-left font-mono">
+                  <label class="text-[10px] uppercase font-bold text-[#bacbbc] pl-1 mb-1 block">SÂN BAY ĐẾN (TO)</label>
+                  <select id="search-destination" class="w-full bg-white/5 border border-white/10 px-4 py-3.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#2af598] font-mono transition-all">
+                    <option value="Da Nang (DAD)">Đà Nẵng (DAD) - Việt Nam</option>
+                    <option value="London (LHR)" selected>London (LHR) - Vương Quốc Anh</option>
+                    <option value="New York (JFK)">New York (JFK) - Hoa Kỳ</option>
+                  </select>
+                </div>
+              </div>
+
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="text-left font-mono">
+                  <label class="text-[10px] uppercase font-bold text-[#bacbbc] pl-1 mb-1 block">NGÀY KHỞI HÀNH</label>
+                  <input type="date" id="search-date" value="2026-09-15" min="2026-06-22" class="w-full bg-white/5 border border-white/10 px-4 py-3.5 text-xs text-white rounded-xl focus:outline-none focus:border-[#2af598] font-mono transition-all">
+                </div>
+
+                <div class="text-left font-mono">
+                  <label class="text-[10px] uppercase font-bold text-[#bacbbc] pl-1 mb-1 block">SỐ LƯỢNG HÀNH KHÁCH</label>
+                  <div class="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl flex items-center justify-between font-mono">
+                    <button type="button" onclick="adjustSearchPassengerCount(-1)" aria-label="Giảm số hành khách" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-base flex items-center justify-center transition-all cursor-pointer">−</button>
+                    <span class="flex items-center gap-1.5 text-white text-xs">
+                      <i data-lucide="users" class="w-4 h-4 text-[#2af598]"></i>
+                      <span id="search-passenger-count-display">1</span> khách
+                    </span>
+                    <button type="button" onclick="adjustSearchPassengerCount(1)" aria-label="Tăng số hành khách" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-base flex items-center justify-center transition-all cursor-pointer">+</button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="bloom-button w-full py-4 bg-gradient-to-r from-sky-500 to-emerald-500 hover:shadow-[0_0_20px_rgba(16,185,129,0.35)] text-white font-black rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-2 cursor-pointer mt-8">
+                <i data-lucide="search" class="w-4.5 h-4.5"></i>
+                <span class="font-bold uppercase tracking-wider">TÌM KIẾM CHUYẾN BAY</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right Statistics Panel & Info columns -->
+          <div class="lg:col-span-2 flex flex-col gap-6 text-left">
+            <!-- Flight Count Status Panel -->
+            <div class="glass-card rounded-[2rem] p-6 border border-white/10 shadow-xl relative overflow-hidden bg-[#0c1326]/95">
+              <div class="absolute top-0 right-0 w-32 h-32 bg-[#2af598]/5 rounded-full blur-2xl -z-10"></div>
+              
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+                <h3 class="text-xs font-mono font-bold text-white tracking-wider uppercase">Giám Sát Hệ Thống Phòng Vé</h3>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4 font-mono">
+                <div class="bg-white/5 border border-white/5 rounded-xl p-4 text-left">
+                  <span class="text-[9px] text-[#bacbbc] block leading-none font-bold">TỔNG CHUYẾN BAY TRỰC TUYẾN</span>
+                  <strong id="search-stat-total-flights" class="block text-3xl font-black text-white mt-1.5">4</strong>
+                </div>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-4 text-left">
+                  <span class="text-[9px] text-[#bacbbc] block leading-none font-bold">VẬN HÀNH BÌNH THƯỜNG</span>
+                  <strong id="search-stat-active-flights" class="block text-xs font-black text-[#2af598] mt-3 uppercase">OK CHUYẾN</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Promotion banner and flight info rules or quick shortcuts -->
+            <div class="rounded-[2rem] p-6 border border-sky-100 shadow-xl bg-gradient-to-br from-sky-50 to-emerald-50">
+              <span class="text-[10px] font-mono text-[#2af598] block uppercase font-bold tracking-widest mb-1">DỊCH VỤ PREMIUM</span>
+              <h3 class="text-white font-display font-bold text-sm">Hành Trình Bay Đầy Bản Sắc</h3>
+              <p class="text-xs text-[#bacbbc] leading-relaxed mt-2">Dựa trên nền tảng kỹ thuật tiên tiến, chúng tôi đem đến tiện ích bộc phát tối đa quyền lợi khách hàng. Toàn bộ thông tin thay đổi được cập nhật tới sảnh điều hành live.</p>
+              
+              <div class="mt-4 pt-4 border-t border-white/5 flex justify-end">
+                <button type="button" onclick="navigateTo('lobby')" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-[10px] font-mono text-[#2af598] rounded-lg border border-white/10 transition-all font-bold uppercase tracking-wider">
+                  ← Trở lại sảnh chung
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ==================== 2. CHOOSE FLIGHT MENU SCREEN ==================== -->
+        <div id="screen-select-flight" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-6 text-left">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-4">
+            <div>
+              <span class="text-[10px] font-mono text-[#bacbbc] uppercase tracking-wider block">SO SÁNH & CHỌN HẠNG VÉ PHÙ HỢP VỚI BẠN</span>
+              <h2 class="text-2xl font-display font-extrabold text-white mt-0.5">
+                Kết quả chuyến bay: <span id="flight-select-title-route" class="text-[#2af598]">--- ➔ ---</span>
+              </h2>
+            </div>
+            <button onclick="navigateTo('search')" class="mt-2 sm:mt-0 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#bacbbc] hover:text-white rounded-xl font-mono cursor-pointer transition-all">
+              ← Trở Lại Tìm Kiếm
+            </button>
+          </div>
+
+          <!-- Cards display container injection -->
+          <div id="flights-list-container"></div>
+        </div>
+
+
+        <!-- ==================== 3. PASSENGER DETAIL SCREEN ==================== -->
+        <div id="screen-passenger" class="hidden w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start text-left">
+          
+          <!-- Left Column: Form Details with Cyan Glowing Frame -->
+          <div class="lg:col-span-3 space-y-6">
+            <h2 class="text-3xl font-display font-extrabold text-white tracking-tight">Thông Tin Hành Khách</h2>
+            
+            <div class="border-2 border-[#00f2fe]/40 rounded-3xl p-8 bg-[#091b3e]/60 shadow-[0_0_25px_rgba(0,242,254,0.15)] space-y-6">
+              <div class="border-b border-[#00f2fe]/20 pb-3">
+                <span id="passenger-single-label" class="text-xs font-mono font-bold text-[#00f2fe] uppercase tracking-widest block mb-2">Hành Khách 1</span>
+                <div id="passenger-tabs" class="hidden flex items-center gap-2 flex-wrap"></div>
+              </div>
+
+              <form id="passenger-form" class="space-y-5 font-mono">
+                <div>
+                  <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider">Họ và Tên</label>
+                  <input type="text" id="passenger-fullname" placeholder="NGUYEN VAN A" class="w-full bg-[#030712]/60 border border-[#00f2fe]/30 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_15px_rgba(3,201,169,0.3)] uppercase tracking-widest font-mono">
+                </div>
+
+                <div>
+                  <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider">Số CCCD / Hộ chiếu</label>
+                  <input type="text" id="passenger-passport" placeholder="B12345678" class="w-full bg-[#030712]/60 border border-[#00f2fe]/30 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_15px_rgba(3,201,169,0.3)] font-mono tracking-widest">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider">Quốc tịch</label>
+                    <select id="passenger-nationality" class="w-full bg-[#030712]/60 border border-[#00f2fe]/30 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe]">
+                      <option value="Việt Nam" selected>Việt Nam</option>
+                      <option value="Hoa Kỳ">Hoa Kỳ</option>
+                      <option value="Anh Quốc">Anh Quốc</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider">Tuổi</label>
+                    <input type="number" id="passenger-age" placeholder="21" class="w-full bg-[#030712]/60 border border-[#00f2fe]/30 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe]">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider">Email liên hệ</label>
+                  <input type="email" id="passenger-email" placeholder="ban@email.com" class="w-full bg-[#030712]/60 border border-[#00f2fe]/30 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe]">
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right Column: Selected Flight & Circular Countdown Timer -->
+          <div class="lg:col-span-2 space-y-6">
+            <!-- Semicircular Timer Block mimicking Image 2 header count -->
+            <div class="glass-card rounded-3xl p-6 border border-white/10 flex flex-col items-center justify-center text-center">
+              <div class="relative flex items-center justify-center w-36 h-36 mx-auto mb-2">
+                <svg class="w-full h-full transform -rotate-90">
+                  <circle cx="72" cy="72" r="64" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" />
+                  <circle cx="72" cy="72" r="64" stroke="#10b981" stroke-width="6" fill="transparent" stroke-dasharray="402" stroke-dashoffset="0" class="circular-timer-progress transition-all duration-1000" style="stroke-linecap: round;" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-[7px] font-mono tracking-wider text-[#bacbbc]/70 uppercase">TIME REMAINING:</span>
+                  <span class="text-2xl font-mono font-black text-white circular-timer-value">30:00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Booking Summary Side Details Box -->
+            <div class="glass-card rounded-3xl p-6 border border-white/10 space-y-5">
+              <span class="text-[10px] font-mono font-bold text-[#bacbbc] uppercase tracking-wider block">Thông Tin Chuyến Bay</span>
+              
+              <div class="space-y-3 font-mono text-xs border-b border-white/10 pb-4">
+                <div class="flex justify-between">
+                  <span class="text-[#bacbbc]">Lộ trình:</span>
+                  <strong id="passenger-summary-route" class="text-white text-right">JFK (New York) to LHR (London)</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#bacbbc]">Ngày bay:</span>
+                  <strong id="passenger-summary-date" class="text-white">Sep 15, 2026</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#bacbbc]">Số hiệu:</span>
+                  <strong id="passenger-summary-flight" class="text-[#10b981]">CA101</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#bacbbc]">Hạng vé:</span>
+                  <strong id="passenger-summary-cabin" class="text-white">Business Class (Thương Gia)</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#bacbbc]">Số lượng:</span>
+                  <strong id="passenger-summary-qty" class="text-white">1 hành khách</strong>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center my-3">
+                <span class="font-bold text-sm text-white">Tổng tiền:</span>
+                <strong id="passenger-summary-price" class="text-2xl font-black text-[#10b981] font-mono">$5,400</strong>
+              </div>
+
+              <button id="btn-submit-passenger-details" class="w-full py-4 bg-gradient-to-r from-cyan-400 to-[#10b981] hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] text-black font-black rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>Xác Nhận Thông Tin</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ==================== 4. SEATS SELECTION SCREEN ==================== -->
+        <div id="screen-seats" class="hidden w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start text-left">
+          <!-- Big Cabin seat diagram selection grid -->
+          <div class="lg:col-span-3 glass-card rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative bg-[#091124]/95">
+            <h2 class="text-2xl font-display font-bold text-white tracking-tight">Sơ Đồ Chọn Ghế</h2>
+            <p class="text-xs text-[#bacbbc] mt-1 mb-3">Máy bay Boeing 777-300ER. Hàng 1-2 là khu Thương Gia (phụ thu $45), ghế tiết kiệm/ phổ thông hàng 3-8 (phụ thu $15).</p>
+ 
+            <!-- Thông báo hạng vé — được JS điền vào động khi vào màn hình này -->
+            <div id="seats-cabin-class-note" class="hidden mb-4"></div>
+ 
+            <!-- Cabin indicators legend — màu khớp đúng với ghế thực tế render bên dưới -->
+            <div class="flex flex-wrap items-center gap-4 text-[10px] font-mono font-bold mb-6 border-b border-slate-100 pb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-slate-100 border border-slate-300"></div>
+                <span>Còn trống (tiết kiệm/ phổ thông)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-[#2af598]/20 border border-[#2af598] shadow-[0_0_10px_#2af598]"></div>
+                <span>Đang chọn</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-amber-500/10 border border-amber-500/30"></div>
+                <span>Thương Gia / VIP (Hàng 1-2)</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-red-500/15 border border-red-500/30"></div>
+                <span>Đã có người đặt</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded bg-white/[0.02] border border-white/5 flex items-center justify-center text-[8px]">🔒</div>
+                <span class="text-slate-400">Không đúng hạng vé</span>
+              </div>
+            </div>
+ 
+            <!-- Airplane graphical body casing simulation -->
+            <div class="bg-[#040914]/90 rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden flex flex-col items-center shadow-inner">
+              <div class="text-[9px] font-mono tracking-widest text-[#bacbbc]/30 uppercase mb-6 font-black">🛩️ MAIN CABIN - FIRST CLASS & ECO SECTION</div>
+              
+              <div class="grid grid-cols-[28px_44px_44px_20px_44px_44px] gap-2.5 w-fit mx-auto" id="rendered-seats-grid"></div>
+ 
+              <div class="text-[9px] font-mono tracking-widest text-[#bacbbc]/30 uppercase mt-6 font-black">EXIT GALLEY SQUAD</div>
+            </div>
+          </div>
+ 
+          <!-- Sidebar: Passenger & Summary with Circular Timer (Exact Image 5 clone) -->
+          <div class="lg:col-span-2 border border-white/10 glass-card rounded-[2.5rem] p-7 flex flex-col gap-6 text-left bg-[#0c162c]/95">
+            <div class="border-b border-white/10 pb-2">
+              <h3 class="text-xs font-mono font-bold text-[#bacbbc] uppercase tracking-wider">Hành Khách & Tóm Tắt</h3>
+            </div>
+ 
+            <!-- Ticket dynamic visual display -->
+            <div class="space-y-4 font-mono text-xs text-[#bacbbc]">
+              <div class="flex justify-between items-center bg-white/5 px-4 py-3 rounded-xl border border-white/5">
+                <span>Hành khách:</span>
+                <strong id="seats-passenger-name-indicator" class="text-white text-right uppercase">NGUYEN VAN A</strong>
+              </div>
+ 
+              <div class="flex justify-between items-center bg-white/5 px-4 py-3 rounded-xl border border-white/5">
+                <span>Ghế đã chọn:</span>
+                <strong id="summary-selected-seats" class="text-[#00f2fe] text-sm font-black tracking-wider">Chưa chọn (0/1)</strong>
+              </div>
+
+              <div class="flex justify-between items-center bg-amber-500/10 px-4 py-3 rounded-xl border border-amber-500/20">
+                <span class="text-amber-300">Cần chọn đủ:</span>
+                <strong><span id="seats-required-count">1</span> ghế</strong>
+              </div>
+            </div>
+ 
+            <!-- Ancillaries header -->
+            <div>
+              <span class="text-[10px] font-mono font-bold text-[#bacbbc]/50 uppercase tracking-widest block mb-1">Tiện ích kèm theo</span>
+              <div class="text-[11px] font-mono text-[#bacbbc] flex gap-2">
+                <span class="px-2 py-1 bg-white/5 border border-white/5 rounded">Hành lý thêm</span>
+                <span class="px-2 py-1 bg-white/5 border border-white/5 rounded">Mã bữa ăn</span>
+              </div>
+            </div>
+ 
+            <!-- Circular countdown Progress Timer (Exact replica of Image 5) -->
+            <div class="py-2 border-t border-b border-white/5 flex flex-col items-center">
+              <div class="relative flex items-center justify-center w-36 h-36 mx-auto">
+                <svg class="w-full h-full transform -rotate-90">
+                  <circle cx="72" cy="72" r="64" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" />
+                  <circle cx="72" cy="72" r="64" stroke="#10b981" stroke-width="6" fill="transparent" stroke-dasharray="402" stroke-dashoffset="0" class="circular-timer-progress transition-all duration-1000" style="stroke-linecap: round;" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-[7px] font-mono tracking-wider text-[#bacbbc]/70 uppercase">TIME REMAINING:</span>
+                  <span class="text-2xl font-mono font-black text-white circular-timer-value">30:00</span>
+                </div>
+              </div>
+            </div>
+ 
+            <div class="flex justify-between items-center font-mono">
+              <span class="font-bold text-sm text-white">Tổng tiền:</span>
+              <strong id="seats-summary-total-price" class="text-2xl font-black text-[#10b981]">$5,400</strong>
+            </div>
+ 
+            <button id="btn-confirm-seats" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-[#2af598] hover:shadow-[0_0_20px_rgba(42,245,152,0.3)] text-black font-extrabold rounded-2xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all">
+              <span>XÁC NHẬN CHỖ NGỒI</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- ==================== 5. EXTRAS SELECTION SCREEN ==================== -->
+        <div id="screen-extras" class="hidden w-full max-w-5xl mx-auto flex flex-col gap-6 text-left">
+          <div class="border-b border-white/5 pb-4">
+            <span class="text-xs font-mono text-[#bacbbc] uppercase tracking-wider block">TIỆN ÍCH ĐI KÈM</span>
+            <h2 class="text-3xl font-display font-extrabold text-white tracking-tight mt-1">Cá Nhân Hoá Hành Trình Của Bạn</h2>
+            <p class="text-xs text-[#bacbbc] mt-1">Tùy chọn thêm dịch vụ sân bay cao cấp, thực đơn trên không tươi ngon, và bảo hiểm an tâm cho chuyến đi.</p>
+          </div>
+
+          <!-- 3. balanced column layout cards as seen in Image 3 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+            
+            <!-- Card 1: Gourmet Dining -->
+            <div onclick="toggleExtrasCard('luggage')" class="extras-interactive-card group border border-white/10 rounded-3xl p-6 bg-[#0c162c] hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.1)] transition-all flex flex-col justify-between h-[360px] relative cursor-pointer overflow-hidden select-none">
+              <!-- Hidden input for backward compatibility -->
+              <input type="checkbox" id="addon-luggage" class="hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-all"></div>
+              
+              <div class="space-y-4">
+                <!-- Circular Icon Header -->
+                <div class="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <i data-lucide="luggage" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-white text-lg font-bold font-display">Hành Lý Ký Gửi Thêm</h3>
+                  <p class="text-2xs text-[#bacbbc] mt-1 font-mono leading-relaxed">Thêm 15KG hành lý ký gửi, đặt trước để an tâm và bỏ qua hàng chờ cân hành lý tại sân bay.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-white/5 pt-4 font-mono">
+                <div>
+                  <span class="text-[9px] text-[#bacbbc] block">GIÁ CHỈ TỪ</span>
+                  <strong class="text-lg text-white font-extrabold">$35.00</strong>
+                </div>
+                <button type="button" id="btn-addon-luggage-trigger" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-white rounded-xl transition-all pointer-events-none">
+                  Thêm vào vé
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 2: Combo Meal -->
+            <div onclick="toggleExtrasCard('meal')" class="extras-interactive-card group border border-white/10 rounded-3xl p-6 bg-[#0c162c] hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.1)] transition-all flex flex-col justify-between h-[360px] relative cursor-pointer overflow-hidden select-none">
+              <input type="checkbox" id="addon-meal" class="hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-all"></div>
+              
+              <div class="space-y-4">
+                <div class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <i data-lucide="utensils-crosshair" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-white text-lg font-bold font-display">Thực Đơn Cao Cấp</h3>
+                  <p class="text-2xs text-[#bacbbc] mt-1 font-mono leading-relaxed">Thưởng thức món ăn được chế biến tươi ngay trên máy bay, kèm thức uống cao cấp đi cùng.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-white/5 pt-4 font-mono">
+                <div>
+                  <span class="text-[9px] text-[#bacbbc] block">GIÁ CHỈ TỪ</span>
+                  <strong class="text-lg text-white font-extrabold">$15.00</strong>
+                </div>
+                <button type="button" id="btn-addon-meal-trigger" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-white rounded-xl transition-all pointer-events-none">
+                  Thêm vào vé
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 3: Golden Insurance -->
+            <div onclick="toggleExtrasCard('insurance')" class="extras-interactive-card group border border-white/10 rounded-3xl p-6 bg-[#0c162c] hover:border-emerald-500/50 hover:shadow-[0_0_25px_rgba(16,185,129,0.1)] transition-all flex flex-col justify-between h-[360px] relative cursor-pointer overflow-hidden select-none">
+              <input type="checkbox" id="addon-insurance" class="hidden">
+              <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:bg-emerald-500/10 transition-all"></div>
+              
+              <div class="space-y-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h3 class="text-white text-lg font-bold font-display">Bảo Hiểm An Tâm Bay</h3>
+                  <p class="text-2xs text-[#bacbbc] mt-1 font-mono leading-relaxed">Bảo hiểm y tế lên tới $50,000, bảo vệ trễ chuyến và hỗ trợ hành lý 24/7 trong suốt hành trình.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-white/5 pt-4 font-mono">
+                <div>
+                  <span class="text-[9px] text-[#bacbbc] block">GIÁ CHỈ TỪ</span>
+                  <strong class="text-lg text-white font-extrabold">$25.00</strong>
+                </div>
+                <button type="button" id="btn-addon-insurance-trigger" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-white rounded-xl transition-all pointer-events-none">
+                  Thêm vào vé
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Floating Summary Bar mimicking Image 3 layout ribbon perfectly -->
+          <div class="mt-8 border border-white/10 rounded-2xl bg-[#091124] p-5 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+            <div class="flex flex-wrap items-center gap-6 font-mono text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-2xs text-[#bacbbc] font-bold block uppercase leading-none">Tóm tắt</span>
+                <span class="inline-block py-0.5 px-2 bg-white/10 text-white rounded text-[9px] font-mono" id="extras-floating-flight-badge">JFK-LHR</span>
+              </div>
+              <div class="h-4 w-px bg-white/10"></div>
+              <div>
+                <span class="text-2xs text-[#bacbbc]">TIỆN ÍCH ĐÃ CHỌN:</span>
+                <strong class="text-[#00f2fe]" id="extras-floating-addons-count">Chưa chọn</strong>
+              </div>
+              <div class="h-4 w-px bg-white/10"></div>
+              <div>
+                <span class="text-2xs text-[#bacbbc]">TỔNG CỘNG:</span>
+                <strong class="text-[#10b981] ml-1 text-sm font-black" id="extras-floating-grand-total">$5,400</strong>
+              </div>
+            </div>
+
+            <button id="btn-confirm-extras" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-[#2af598] hover:shadow-[0_0_15px_rgba(42,245,152,0.4)] text-black font-black rounded-xl transition-all font-sans text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+              <span>TIẾP TỤC THANH TOÁN</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- ==================== 6. CHECKOUT BILLING SCREEN ==================== -->
+        <div id="screen-checkout" class="hidden w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8 items-start text-left">
+          
+          <!-- Left Column: Payment Details (Exact clone of Image 1) -->
+          <div class="lg:col-span-3 glass-card rounded-[2.5rem] p-8 border border-white/10 shadow-2xl relative bg-[#091124] space-y-6">
+            <div>
+              <span class="text-xs font-mono text-[#00f2fe] uppercase tracking-widest block font-bold">Thanh Toán An Toàn</span>
+              <h2 class="text-2xl font-display font-black text-white mt-1">Thông Tin Thanh Toán</h2>
+              <p class="text-xs text-[#bacbbc] mt-1 font-mono">Mã hóa 256-bit đầu-cuối. Mọi giao dịch của bạn được bảo vệ toàn diện (môi trường Sandbox demo).</p>
+            </div>
+
+            <form id="billing-form" onsubmit="event.preventDefault();" class="space-y-4 font-mono">
+              <div>
+                <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider font-bold">Tên Chủ Thẻ</label>
+                <input type="text" id="input-cardholder-name" value="--------" class="w-full bg-[#030712]/60 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_12px_rgba(0,242,254,0.3)] uppercase tracking-widest font-mono">
+              </div>
+
+              <div>
+                <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider flex justify-between items-center font-bold">
+                  <span>Số Thẻ</span>
+                  <!-- Small network logos row as seen in Image 1 top right -->
+                  <span class="flex items-center gap-1.5 opacity-60 font-mono">
+                    <span class="text-[8px] font-mono font-bold bg-[#3b5998]/40 px-1 py-0.5 rounded text-white font-extrabold">VISA</span>
+                    <span class="text-[8px] font-mono font-bold bg-[#ea3c53]/40 px-1 py-0.5 rounded text-white font-extrabold font-mono">MC</span>
+                    <span class="text-[8px] font-mono font-bold bg-[#00a2e8]/40 px-1 py-0.5 rounded text-white font-extrabold">AMEX</span>
+                  </span>
+                </label>
+                <input type="text" id="input-card-number" value="4111 2222 3333 4444" class="w-full bg-[#030712]/60 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_12px_rgba(0,242,254,0.3)] tracking-widest font-mono text-[#00f2fe] font-black">
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider font-bold">Ngày Hết Hạn</label>
+                  <input type="text" id="input-card-expiry" value="10 / 29" class="w-full bg-[#030712]/60 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_12px_rgba(0,242,254,0.3)] font-mono text-center font-bold">
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-[#bacbbc] block uppercase pl-1 mb-1.5 font-mono tracking-wider font-bold">Mã CVV</label>
+                  <input type="text" id="input-card-cvv" value="781" class="w-full bg-[#030712]/60 border border-white/10 px-4 py-3 text-xs text-white rounded-xl focus:outline-none focus:border-[#00f2fe] focus:shadow-[0_0_12px_rgba(0,242,254,0.3)] font-mono text-center font-bold">
+                </div>
+              </div>
+            </form>
+
+            <!-- Security badges/compliance footer (Image 1 replica) -->
+            <div class="pt-5 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 font-mono text-[9px] text-[#bacbbc]/50 select-none">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-[#00f2fe]"></i>
+                <span class="font-bold font-mono">BẢO MẬT SSL 256-BIT</span>
+              </span>
+              <span class="flex items-center gap-2 font-mono">
+                <span class="border border-white/10 rounded px-1.5 py-0.5 font-black uppercase font-mono">PCI-DSS</span>
+                <span id="gateway-connected-status" class="flex items-center gap-1 font-bold text-emerald-400 font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> CỔNG THANH TOÁN SANDBOX
+                </span>
+              </span>
+            </div>
+
+            <!-- Big bold payoff execution button (Image 1 green button) -->
+            <button id="btn-complete-checkout" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-[#2af598] hover:shadow-[0_0_20px_rgba(42,245,152,0.4)] text-black font-black rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-2 cursor-pointer mt-2">
+              <i data-lucide="credit-card" class="w-4.5 h-4.5"></i>
+              <span>THANH TOÁN NGAY</span>
+            </button>
+          </div>
+
+          <!-- Right Column: Booking Summary with Circular Timer (Exact clone of Image 1) -->
+          <div class="lg:col-span-2 glass-card rounded-[2.5rem] p-7 border border-white/10 shadow-3xl bg-[#0c162c] space-y-6">
+            <div class="border-b border-white/10 pb-2">
+              <h3 class="text-xs font-mono font-bold text-[#bacbbc] uppercase tracking-wider">Tóm Tắt Đặt Vé</h3>
+            </div>
+
+            <!-- Beautiful circular stopwatch countdown ring (Image 1) -->
+            <div class="py-2 flex flex-col items-center">
+              <div class="relative flex items-center justify-center w-36 h-36 mx-auto">
+                <svg class="w-full h-full transform -rotate-90">
+                  <circle cx="72" cy="72" r="64" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" />
+                  <circle cx="72" cy="72" r="64" stroke="#10b981" stroke-width="6" fill="transparent" stroke-dasharray="402" stroke-dashoffset="0" class="circular-timer-progress transition-all duration-1000" style="stroke-linecap: round;" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-[7px] font-mono tracking-wider text-[#bacbbc]/70 uppercase">TIME REMAINING:</span>
+                  <span class="text-2xl font-mono font-black text-white circular-timer-value">30:00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- In-depth bill breakdown -->
+            <div class="space-y-4 border-t border-b border-white/5 py-4 font-mono text-xs text-[#bacbbc]">
+              <div class="flex justify-between items-center">
+                <span>Lộ trình:</span>
+                <strong id="receipt-route" class="text-white text-right">JFK ➔ LHR</strong>
+              </div>
+              <div class="flex justify-between items-center text-[11px] opacity-80 pl-2">
+                <span>Số hiệu chuyến bay:</span>
+                <span id="receipt-flight-info" class="text-white uppercase font-bold">CA101</span>
+              </div>
+              <div class="flex justify-between items-center text-[11px] opacity-80 pl-2">
+                <span>Ngày khởi hành:</span>
+                <span id="receipt-date" class="text-white font-bold">Sep 15, 2026</span>
+              </div>
+              
+              <div class="flex justify-between items-center border-t border-white/5 pt-3">
+                <span id="receipt-base-price">Giá vé cơ bản:</span>
+                <strong id="receipt-base-total" class="text-white font-bold">$0</strong>
+              </div>
+
+              <div class="flex justify-between items-center">
+                <span>Phụ thu chọn ghế (<span id="receipt-seats-list" class="text-[#00f2fe] font-bold">---</span>):</span>
+                <strong id="receipt-seats-fee" class="text-white">$0</strong>
+              </div>
+
+              <!-- Extra Items List Summary -->
+              <div class="space-y-1.5 border-t border-white/5 pt-3 font-mono">
+                <span class="text-[9px] text-[#bacbbc]/75 font-bold block uppercase tracking-wider mb-2 font-mono">Tiện ích đã chọn:</span>
+                <div id="receipt-addons-list-summary" class="space-y-1.5 text-[11px] font-mono"></div>
+              </div>
+            </div>
+
+            <!-- Grand total cost payoff -->
+            <div class="flex justify-between items-center pt-2 font-mono">
+              <span class="font-display text-sm font-bold text-white font-mono">Tổng cộng:</span>
+              <strong id="receipt-grand-total" class="text-3xl font-black text-[#10b981] font-mono tracking-tighter shadow-sm">$5,400</strong>
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- ==================== 7. SUCCESS SCREEN (TICKET INVOICE RECEIPT) ==================== -->
+        <div id="screen-success" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center gap-6 justify-center">
+          <!-- Big ticket graphical styling layout -->
+          <div class="glass-card w-full rounded-3xl overflow-hidden border border-[#2af598]/30 shadow-[0_0_40px_rgba(42,245,152,0.15)] bg-[#0c162c] text-left">
+            <!-- Ticket Top Header -->
+            <div class="bg-gradient-to-r from-emerald-900/30 to-[#2af598]/20 p-6 border-b border-dashed border-white/10 relative">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="shield-check" class="w-5 h-5 text-[#2af598]"></i>
+                  <span class="text-xs font-mono font-bold text-[#2af598] uppercase tracking-widest">ĐẶT VÉ THÀNH CÔNG (CLOUD AIRLINE)</span>
+                </div>
+                <div class="text-[10px] bg-[#2af598]/20 px-2.5 py-1 text-[#2af598] rounded font-mono font-bold uppercase select-none">CONFIRMED VÉ CHI TIẾT</div>
+              </div>
+              <h2 class="text-xl font-display font-bold text-white mt-3">Hành Trình Bay Bản Sắc Của Bạn Khởi Động</h2>
+              
+              <!-- Ticket border cutout styles -->
+              <span class="absolute -bottom-3 -left-3 w-6 h-6 bg-[#0b1326] rounded-full border border-white/5"></span>
+              <span class="absolute -bottom-3 -right-3 w-6 h-6 bg-[#0b1326] rounded-full border border-white/5"></span>
+            </div>
+
+            <!-- Ticket Core Details -->
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 relative border-b border-dashed border-white/10 font-mono text-xs">
+              <div class="space-y-4">
+                <div>
+                  <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Họ tên hành khách</span>
+                  <strong id="success-passenger" class="text-white text-sm uppercase">NGUYEN DANG KHOA</strong>
+                </div>
+                <div>
+                  <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Mã chuyến bay</span>
+                  <strong id="success-flight-number" class="text-[#2af598] text-sm uppercase">CA203</strong>
+                </div>
+                <div>
+                  <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Lộ trình du chuyển</span>
+                  <strong id="success-route" class="text-white text-sm">New York (JFK) ➔ Đà Nẵng (DAD)</strong>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div>
+                  <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Giờ khởi hành dự định</span>
+                  <strong id="success-departure-time" class="text-white text-sm">2026-09-15 10:00 AM</strong>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Số ghế ngồi</span>
+                    <strong id="success-seat" class="text-white text-sm">A1, B1</strong>
+                  </div>
+                  <div>
+                    <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Hạng vé</span>
+                    <strong id="success-class" class="text-white text-sm">Tiết Kiệm</strong>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-[#bacbbc] text-[10px] block uppercase font-bold leading-none mb-1">Sổ chi trả (Vật lý)</span>
+                  <strong id="success-total-paid" class="text-white text-sm font-bold text-emerald-300">$0</strong>
+                </div>
+              </div>
+
+              <span class="absolute -bottom-3 -left-3 w-6 h-6 bg-[#0b1326] rounded-full border border-white/5"></span>
+              <span class="absolute -bottom-3 -right-3 w-6 h-6 bg-[#0b1326] rounded-full border border-white/5"></span>
+            </div>
+
+            <!-- Ticket Bottom Barcode Area -->
+            <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/[0.01]">
+              <div class="text-left">
+                <span class="text-[9px] text-[#bacbbc] font-mono block leading-none">MÃ GIAO DỊCH TÌNH TRẠNG VÉ</span>
+                <strong id="success-booking-id" class="text-white font-mono text-sm tracking-widest uppercase block mt-1">CH-123456</strong>
+              </div>
+
+              <!-- Barcode simulated line columns representation -->
+              <div class="flex items-end gap-0.5 opacity-80" title="Simulated Ticket Barcode Scan">
+                <span class="barcode-line w-1"></span><span class="barcode-line w-0.5"></span><span class="barcode-line w-1.5"></span><span class="barcode-line w-0.5"></span><span class="barcode-line w-1"></span><span class="barcode-line w-2"></span><span class="barcode-line w-0.5"></span><span class="barcode-line w-1.5"></span><span class="barcode-line w-1"></span><span class="barcode-line w-0.5"></span><span class="barcode-line w-1.5"></span><span class="barcode-line w-2"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions reset booking -->
+          <div class="flex flex-col sm:flex-row items-center gap-3">
+            <button onclick="printSuccessTicket()" class="px-8 py-4 bg-white border border-slate-200 hover:border-emerald-400 text-slate-700 font-extrabold rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-2 cursor-pointer">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>TẢI VÉ ĐIỆN TỬ (PDF)</span>
+            </button>
+            <button id="btn-new-booking" class="px-8 py-4 bg-gradient-to-r from-emerald-500 to-[#2af598] hover:shadow-[0_0_20px_rgba(42,245,152,0.4)] text-black font-extrabold rounded-2xl transition-all font-sans text-xs flex items-center justify-center gap-2 cursor-pointer">
+               <i data-lucide="plane" class="w-4 h-4"></i>
+               <span>ĐĂNG KÝ ĐẶT CHUYẾN VÉ MỚI</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- ==================== 7B. SESSION EXPIRED / BOOKING TIMEOUT SCREEN ==================== -->
+        <!-- Hiện ra khi đồng hồ giữ chỗ 30 phút chạy về 0 trong lúc đang ở các bước đặt vé
+             (search -> select_flight -> passenger -> seats -> extras -> checkout).
+             Đóng vai trò tương đương "error.html" nhưng vẫn nằm trong SPA để giữ nguyên
+             CSS/JS context, tránh phải tách trang riêng phá vỡ kiến trúc 1-trang hiện tại. -->
+        <div id="screen-error" class="hidden w-full max-w-lg mx-auto flex flex-col items-center gap-6 justify-center text-center">
+          <div class="glass-card w-full rounded-3xl overflow-hidden border border-red-300 shadow-3xl p-8 flex flex-col items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+              <i data-lucide="alarm-clock-off" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <h2 class="text-xl font-display font-bold">Phiên giữ chỗ đã hết hạn</h2>
+            <p id="error-screen-message" class="text-sm text-slate-500 leading-relaxed">
+              Bạn đã không hoàn tất thanh toán trong vòng 30 phút giữ chỗ. Để đảm bảo công bằng cho hành khách khác,
+              giao dịch đặt vé này đã bị hủy tự động. Vui lòng thực hiện tìm chuyến bay và đặt vé lại từ đầu.
+            </p>
+            <button id="btn-error-back-to-search" class="w-full px-8 py-3.5 bg-gradient-to-r from-sky-500 to-emerald-500 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer hover:shadow-lg">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>QUAY VỀ TÌM CHUYẾN BAY</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== 7C. GUEST CANCEL BOOKING SCREEN ==================== -->
+        <!-- Cho khách lẻ (chưa đăng nhập) tự hủy vé bằng Mã vé + Số CMND/Passport của
+             1 trong các hành khách trên vé — vì khách lẻ không có session để xác định
+             "ai là chủ vé" như cancel_booking.php (yêu cầu đăng nhập) đang dùng. -->
+        <div id="screen-guest-cancel" class="hidden w-full max-w-lg mx-auto flex flex-col items-center gap-6 justify-center text-center">
+          <div class="glass-card w-full rounded-3xl overflow-hidden border border-slate-200 shadow-3xl p-8 flex flex-col items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center">
+              <i data-lucide="ticket-x" class="w-8 h-8 text-sky-500"></i>
+            </div>
+            <h2 class="text-xl font-display font-bold">Tra Cứu / Hủy Vé (Khách Lẻ)</h2>
+            <p class="text-sm text-slate-500 leading-relaxed">
+              Xem chi tiết vé bằng Mã đặt chỗ + Họ tên, hoặc hủy vé trực tiếp bằng Mã vé + Số CMND/Passport.
+              Cách này chỉ áp dụng cho vé đặt KHÔNG qua tài khoản hội viên.
+            </p>
+
+            <!-- Form 1: Xem chi tiết vé bằng Mã đặt chỗ + Họ tên (giống "Quản lý đặt chỗ" của VNA/Vietjet) -->
+            <form id="guest-lookup-form" class="w-full flex flex-col gap-4 text-left border-b border-slate-100 pb-6">
+              <span class="text-[10px] font-mono font-bold text-sky-600 uppercase tracking-wider">Bước 1 · Xem chi tiết vé</span>
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">MÃ ĐẶT CHỖ (PNR)</label>
+                <input type="text" id="guest-lookup-booking-code" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="CH-123456">
+              </div>
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">HỌ TÊN HÀNH KHÁCH (ĐÚNG NHƯ LÚC ĐẶT VÉ)</label>
+                <input type="text" id="guest-lookup-fullname" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="NGUYEN DANG KHOA">
+              </div>
+              <button type="submit" id="btn-guest-lookup-submit" class="w-full px-8 py-3.5 bg-gradient-to-r from-sky-500 to-emerald-500 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer hover:shadow-lg disabled:opacity-50">
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span>XEM CHI TIẾT VÉ</span>
+              </button>
+            </form>
+
+            <!-- Kết quả tra cứu -->
+            <div id="guest-lookup-result" class="hidden w-full text-left bg-slate-50 border border-slate-200 rounded-2xl p-5 font-mono text-xs space-y-2"></div>
+
+            <span class="text-[10px] font-mono font-bold text-red-500 uppercase tracking-wider self-start">Bước 2 · Hủy vé (cần Passport để xác minh)</span>
+            <form id="guest-cancel-form" class="w-full flex flex-col gap-4 text-left">
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">MÃ VÉ</label>
+                <input type="text" id="guest-cancel-booking-code" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="CH-123456">
+              </div>
+              <div class="group font-mono">
+                <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1">SỐ CMND / PASSPORT (CỦA 1 HÀNH KHÁCH TRÊN VÉ)</label>
+                <input type="text" id="guest-cancel-passport" class="w-full bg-white border border-slate-200 px-4 py-3 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-sky-400 font-mono transition-all" placeholder="B12345678">
+              </div>
+              <button type="submit" id="btn-guest-cancel-submit" class="w-full px-8 py-3.5 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold rounded-2xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer hover:shadow-lg disabled:opacity-50">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+                <span>XÁC NHẬN HỦY VÉ</span>
+              </button>
+            </form>
+
+            <button onclick="navigateTo('auth')" class="text-xs font-mono text-slate-400 hover:text-slate-600 transition-all underline decoration-dotted">
+              ← Quay về màn đăng nhập
+            </button>
+          </div>
+        </div>
+
+
+        <!-- ==================== 8. ADMINISTRATIVE DASHBOARD SCREEN ==================== -->
+        <div id="screen-admin" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-6 text-left">
+          
+          <!-- Title Row Info -->
+          <div class="border-b border-white/5 pb-4">
+            <span class="text-[10px] font-mono text-[#bacbbc] uppercase tracking-wider block">BẢNG QUẢN TRỊ ADMIN VẬN HÀNH</span>
+            <h2 class="text-2xl font-display font-extrabold text-white mt-0.5">Điều phối & Giám sát Chuyến Bay Trực Tuyến</h2>
+          </div>
+
+          <!-- Metric Stats Rows Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Stat widget 1 -->
+            <div class="glass-card rounded-2xl p-5 border border-white/10 text-left bg-[#0c1629]">
+              <span class="text-[9px] font-mono text-[#bacbbc] block uppercase font-bold">Tổng doanh thu hệ thống</span>
+              <strong id="admin-stat-revenue" class="block text-3xl font-black text-white mt-1.5 font-mono">$0</strong>
+            </div>
+
+            <!-- Stat widget 2 -->
+            <div class="glass-card rounded-2xl p-5 border border-white/10 text-left bg-[#0c1629]">
+              <span class="text-[9px] font-mono text-[#bacbbc] block uppercase font-bold">Lượt vé đã đặt thành công (Sandbox)</span>
+              <strong id="admin-stat-bookings-count" class="block text-3xl font-black text-white mt-1.5 font-mono">0 lượt</strong>
+            </div>
+
+            <!-- Stat widget 3 -->
+            <div class="glass-card rounded-2xl p-5 border border-white/10 text-left bg-[#0c1629]">
+              <span class="text-[9px] font-mono text-[#bacbbc] block uppercase font-bold">Tổng số tuyến bay</span>
+              <strong id="admin-stat-flights-count" class="block text-3xl font-black text-[#2af598] mt-1.5 font-mono">0 tuyến</strong>
+            </div>
+          </div>
+
+          <!-- Flights manipulation control table -->
+          <div class="glass-card rounded-[2.5rem] p-6 border border-white/10 shadow-xl overflow-hidden bg-[#0c1527]/90 max-w-full">
+            <h3 class="text-sm font-display font-extrabold text-white pl-1 mb-4">Danh Sách Tuyến Bay Đang Quản Lý</h3>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 font-mono text-[10px] text-[#bacbbc] tracking-wider">
+                    <th class="px-5 py-3.5 uppercase font-bold">Mã chuyến</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Lộ trình du chuyển</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Giờ Khởi Hành</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Trạng Thái Vận Hành</th>
+                    <th class="px-5 py-3.5 uppercase font-bold text-right">Điều Phối Trạng Thái</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-flights-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bảng Danh Sách Đặt Vé & Hành Khách Đăng Ký (Admin Passenger Table) -->
+          <div class="glass-card rounded-[2.5rem] p-6 border border-white/10 shadow-xl overflow-hidden bg-[#0c1527]/90 max-w-full">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div>
+                <h3 class="text-sm font-display font-extrabold text-white pl-1">Danh Sách Vé & Hành Khách Đăng Ký</h3>
+                <p class="text-[10px] text-slate-500 pl-1 mt-1">Giám sát các hồ sơ đặt chỗ trực tuyến, phân bổ ghế ngồi và hỗ trợ xử lý hủy hoán</p>
+              </div>
+              <div class="text-right">
+                <span id="admin-passenger-count" class="text-[10px] font-mono font-bold bg-sky-50 text-sky-700 px-2.5 py-1 rounded-xl uppercase tracking-wider">0 hành khách</span>
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 font-mono text-[10px] text-[#bacbbc] tracking-wider">
+                    <th class="px-5 py-3.5 uppercase font-bold">Mã Vé ID</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Hành Khách</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Chuyến</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Cabin/Ghế</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Trị Giá</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Trạng Thái Vé</th>
+                    <th class="px-5 py-3.5 uppercase font-bold text-right">Hành Động Vận Hành</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-bookings-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Nhật ký thao tác Admin (Audit Log) -->
+          <div class="glass-card rounded-[2.5rem] p-6 border border-white/10 shadow-xl overflow-hidden bg-[#0c1527]/90 max-w-full">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="text-sm font-display font-extrabold text-white pl-1">Nhật Ký Thao Tác Quản Trị (Audit Log)</h3>
+                <p class="text-[10px] text-slate-500 pl-1 mt-1">Lịch sử đổi trạng thái chuyến bay / hủy vé thay khách của Admin — phục vụ truy vết trách nhiệm.</p>
+              </div>
+              <button onclick="loadAuditLog()" class="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-white rounded-xl transition-all font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Tải lại</span>
+              </button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 font-mono text-[10px] text-[#bacbbc] tracking-wider">
+                    <th class="px-5 py-3.5 uppercase font-bold">Thời Gian</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Admin</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Hành Động</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Đối Tượng</th>
+                    <th class="px-5 py-3.5 uppercase font-bold">Chi Tiết</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-audit-log-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ==================== 9. PHP & MYSQL SOURCE TAB SCREEN ==================== -->
+        <div id="screen-php" class="hidden w-full max-w-6xl mx-auto flex flex-col gap-6 text-left">
+          
+          <!-- Header and Explanatory -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-6">
+            <div>
+              <span class="text-[#2af598] font-mono text-xs tracking-wider uppercase font-bold flex items-center gap-1.5 mb-1">
+                <i data-lucide="book-open" class="w-4 h-4"></i> THƯ VIỆN ĐỒ ÁN MẪU PHP & MYSQL CHO BÀI NỘP MÔN
+              </span>
+              <h2 class="text-3xl font-display font-bold text-white tracking-tight">Cơ Sở Dữ Liệu & Mã Nguồn Báo Cáo</h2>
+            </div>
+            
+            <!-- Quick text explanation -->
+            <div class="mt-4 md:mt-0 p-3 bg-white/5 rounded-xl border border-white/10 text-[11px] text-[#bacbbc] max-w-sm">
+              💡 Thư viện chứa tệp cấu hình thiết kế DB MySQL và mã nguồn PHP đồng bộ kết nối PDO giúp bạn chạy trực tiếp trên XAMPP làm đồ án cực nhanh!
+            </div>
+          </div>
+
+          <!-- Multi Columns Tab Selector -->
+          <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Tabs Lists -->
+            <div class="flex flex-col gap-2" id="php-files-tab-menu"></div>
+
+            <!-- Right Script Editor Display Code Panel -->
+            <div class="lg:col-span-3 flex flex-col rounded-2xl bg-[#060e20] border border-white/15 overflow-hidden">
+              <div class="flex justify-between items-center bg-[#091124] px-5 py-4 border-b border-white/10">
+                <div class="flex items-center gap-2">
+                  <span class="flex gap-1.5 mr-1.5">
+                    <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                    <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                  </span>
+                  <span id="php-active-filename-badge" class="text-2xs text-[#bacbbc] font-mono bg-black/40 px-3 py-1 rounded border border-white/5 font-bold">
+                    ---
+                  </span>
+                </div>
+
+                <button onclick="copyCodeToClipboard()" id="btn-copy-php-code" class="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono px-3.5 py-1.5 rounded-lg text-white transition-all cursor-pointer">
+                  <i data-lucide="copy" class="w-3.5 h-3.5 text-[#bacbbc]"></i>
+                  <span>Sao chép tệp tin này</span>
+                </button>
+              </div>
+
+              <!-- Description Block banner -->
+              <div class="bg-white/[0.02] border-b border-white/5 p-4 text-xs text-[#bacbbc] px-5 leading-relaxed italic">
+                <strong>Mô tả tập tin:</strong> <span id="php-file-desc-box">---</span>
+              </div>
+
+              <!-- Pure code element block -->
+              <div class="p-5 overflow-auto max-h-[440px] font-mono text-[11px] text-emerald-300 bg-black/30">
+                <pre class="whitespace-pre-wrap font-mono"><code id="php-code-pre-box">---</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- APP FOOTER BAR -->
+      <footer class="mt-auto border-t border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-6 sm:px-10 py-12 grid grid-cols-2 md:grid-cols-5 gap-8 text-left">
+          <!-- Brand column -->
+          <div class="col-span-2">
+            <div class="flex items-center gap-2.5 mb-3">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-[#2af598] flex items-center justify-center shadow-md">
+                <i data-lucide="plane" class="w-4.5 h-4.5 text-black"></i>
+              </div>
+              <span class="font-display font-black text-slate-900 text-base tracking-wide">CLOUD AIRLINE</span>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed max-w-xs">Hãng hàng không số — đặt vé, chọn ghế và quản lý hành trình trực tuyến trong vài bước. Dự án demo cho môn Công Nghệ Phần Mềm.</p>
+            <div class="flex items-center gap-2 mt-4">
+              <span class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 flex items-center justify-center transition-all cursor-pointer"><i data-lucide="globe" class="w-4 h-4"></i></span>
+              <span class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 flex items-center justify-center transition-all cursor-pointer"><i data-lucide="camera" class="w-4 h-4"></i></span>
+              <span class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 flex items-center justify-center transition-all cursor-pointer"><i data-lucide="play-circle" class="w-4 h-4"></i></span>
+            </div>
+          </div>
+
+          <!-- Support column -->
+          <div>
+            <span class="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-3">Hỗ Trợ</span>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Trung tâm trợ giúp</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Hoàn / đổi vé</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Quy định hành lý</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Liên hệ CSKH</a></li>
+            </ul>
+          </div>
+
+          <!-- Company column -->
+          <div>
+            <span class="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-3">Về Cloud Airline</span>
+            <ul class="space-y-2 text-xs text-slate-600">
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Giới thiệu</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Tuyển dụng</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Tin tức</a></li>
+              <li><a href="#" onclick="event.preventDefault()" class="hover:text-emerald-600 transition-colors">Điều khoản & Bảo mật</a></li>
+            </ul>
+          </div>
+
+          <!-- Trust column -->
+          <div>
+            <span class="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-3">Cam Kết</span>
+            <ul class="space-y-2.5 text-xs text-slate-600">
+              <li class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i> Bảo mật SSL 256-bit</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="headset" class="w-3.5 h-3.5 text-emerald-500"></i> Hỗ trợ 24/7</li>
+              <li class="flex items-center gap-1.5"><i data-lucide="badge-check" class="w-3.5 h-3.5 text-emerald-500"></i> Chuẩn PCI-DSS</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 py-4 px-6 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-2 max-w-6xl mx-auto text-[10px] font-mono text-slate-400">
+          <span>Cloud Airline System v2.1.0 • Phát triển bởi nhóm Công nghệ phần mềm © 2026.</span>
+          <span class="flex items-center gap-1.5 opacity-70">
+            <span class="border border-slate-200 rounded px-1.5 py-0.5 font-bold">VISA</span>
+            <span class="border border-slate-200 rounded px-1.5 py-0.5 font-bold">MASTERCARD</span>
+            <span class="border border-slate-200 rounded px-1.5 py-0.5 font-bold">AMEX</span>
+          </span>
+        </div>
+      </footer>
+    </div>
+    
+    <!-- Beautiful Custom Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+      <div class="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-3xl max-w-md w-full mx-4 transform scale-95 transition-all duration-300 text-slate-800 text-left">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-600 flex-shrink-0 animate-pulse">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-display font-extrabold text-slate-900" id="confirm-modal-title">Xác nhận thao tác</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed" id="confirm-modal-message">Bạn có thực sự chắc chắn muốn thực hiện?</p>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+          <button id="confirm-modal-cancel" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all uppercase tracking-wider cursor-pointer">
+            Bỏ qua
+          </button>
+          <button id="confirm-modal-approve" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all uppercase tracking-wider shadow-lg shadow-red-600/20 cursor-pointer">
+            Đồng ý hủy
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MODAL ĐỔI VÉ (chọn chuyến bay trực quan) ==================== -->
+    <div id="change-booking-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300 p-4">
+      <div class="bg-white rounded-[2rem] border border-slate-200 shadow-3xl max-w-2xl w-full max-h-[85vh] flex flex-col text-slate-800 text-left overflow-hidden">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-100 flex justify-between items-start gap-4">
+          <div>
+            <span class="text-[10px] font-mono font-bold text-amber-600 uppercase tracking-wider block">Đổi Vé — <span id="change-modal-booking-code">CH-000000</span></span>
+            <h3 class="text-lg font-display font-extrabold text-slate-900 mt-0.5">Chọn chuyến bay mới</h3>
+            <p id="change-modal-route" class="text-xs text-slate-500 font-mono mt-1">--- ➔ ---</p>
+          </div>
+          <button onclick="closeChangeBookingModal()" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 hover:text-slate-800 transition-all cursor-pointer flex-shrink-0">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Ngày bay mới -->
+        <div class="px-6 pt-5 pb-2">
+          <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-1.5">Ngày bay mới</label>
+          <input type="date" id="change-modal-date" class="w-full sm:w-56 bg-slate-50 border border-slate-200 px-4 py-2.5 text-xs text-slate-900 rounded-xl focus:outline-none focus:border-amber-400 font-mono">
+        </div>
+
+        <!-- Danh sách chuyến bay cùng tuyến (dạng card, bấm để chọn) -->
+        <div class="px-6 py-4 overflow-y-auto flex-grow">
+          <label class="text-[10px] font-mono font-bold text-slate-500 block uppercase mb-2">Chọn chuyến bay (cùng tuyến, hạng vé giữ nguyên)</label>
+          <div id="change-modal-flight-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+
+        <!-- Footer: phí đổi vé + nút xác nhận -->
+        <div class="p-6 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p id="change-modal-fee-note" class="text-[11px] text-slate-500 font-sans"></p>
+          <button id="change-modal-confirm-btn" onclick="confirmChangeBooking()" disabled class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-amber-500 to-emerald-500 hover:shadow-lg text-white font-bold rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+            <span>Xác Nhận Đổi Vé</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Modal — hiển thị nội dung chi tiết khi bấm 1 mục trong Mega Menu -->
+    <div id="info-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300 p-4">
+      <div class="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-3xl max-w-lg w-full transform transition-all duration-300 text-slate-800 text-left">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-sky-500 flex items-center justify-center text-white flex-shrink-0">
+            <i data-lucide="info" class="w-5 h-5"></i>
+          </div>
+          <button onclick="closeInfoModal()" class="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <h3 class="text-lg font-display font-extrabold text-slate-900" id="info-modal-title">Tiêu đề</h3>
+        <p class="text-sm text-slate-600 mt-2.5 leading-relaxed" id="info-modal-body">Nội dung...</p>
+        <div id="info-modal-cta" class="mt-5"></div>
+      </div>
+    </div>
+
+    <!-- CloudBot — Trợ lý ảo dạng chat (nút nổi + khung chat) -->
+    <button onclick="toggleChatWidget()" class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-tr from-sky-500 to-emerald-500 text-white shadow-xl hover:scale-110 transition-all flex items-center justify-center cursor-pointer" title="Chat với CloudBot">
+      <i data-lucide="bot" class="w-6 h-6"></i>
+    </button>
+
+    <div id="chat-widget-panel" class="hidden fixed bottom-24 right-6 z-50 w-[340px] max-w-[90vw] h-[460px] bg-white rounded-3xl border border-slate-200 shadow-3xl flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4 flex items-center gap-3 shrink-0">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-400 to-emerald-400 flex items-center justify-center text-slate-900">
+          <i data-lucide="bot" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-grow">
+          <span class="block text-sm font-display font-bold text-white">CloudBot</span>
+          <span class="flex items-center gap-1 text-[10px] text-emerald-300 font-mono"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Trợ lý ảo Cloud Airline</span>
+        </div>
+        <button onclick="toggleChatWidget()" class="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Messages -->
+      <div id="chat-messages-list" class="flex-grow overflow-y-auto p-4 space-y-3 bg-slate-50"></div>
+
+      <!-- Quick suggestion chips -->
+      <div class="flex gap-1.5 px-4 pb-2 overflow-x-auto shrink-0">
+        <button onclick="document.getElementById('chat-input').value='Chính sách hành lý?';sendChatMessage();" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 text-[10px] text-slate-600 hover:text-emerald-700 font-mono whitespace-nowrap transition-all cursor-pointer">Hành lý</button>
+        <button onclick="document.getElementById('chat-input').value='Làm sao để hủy vé?';sendChatMessage();" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 text-[10px] text-slate-600 hover:text-emerald-700 font-mono whitespace-nowrap transition-all cursor-pointer">Hủy vé</button>
+        <button onclick="document.getElementById('chat-input').value='CloudMiles là gì?';sendChatMessage();" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-emerald-50 text-[10px] text-slate-600 hover:text-emerald-700 font-mono whitespace-nowrap transition-all cursor-pointer">CloudMiles</button>
+      </div>
+
+      <!-- Input -->
+      <div class="border-t border-slate-100 p-3 flex items-center gap-2 shrink-0">
+        <input id="chat-input" type="text" onkeydown="handleChatInputKeydown(event)" placeholder="Nhập câu hỏi của bạn..." class="flex-grow bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:border-emerald-400">
+        <button onclick="sendChatMessage()" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-500 text-white flex items-center justify-center hover:shadow-md transition-all cursor-pointer shrink-0">
+          <i data-lucide="send" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Toast Popup Notifications housing (đặt bên trái để không bao giờ đè lên nút/khung Chat bên phải) -->
+    <div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-3"></div>
+    <div id="print-ticket-area" class="hidden"></div>
+
+  </body>
+</html>
